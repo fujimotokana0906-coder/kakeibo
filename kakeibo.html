@@ -74,6 +74,7 @@ select{-webkit-appearance:auto;appearance:auto}
 .cat-travel{background:var(--blue-light);color:var(--blue);border-color:#A8C4E8}
 .cat-utility{background:#FFF0F0;color:#8B2A2A;border-color:#E8B0B0}
 .cat-other{background:var(--surface2);color:var(--text-muted);border-color:var(--border)}
+.cat-transport{background:#F0FFF4;color:#1A5C3A;border-color:#90D4A8}
 .ename{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .eamt{font-family:var(--mono);font-size:13px;flex-shrink:0}
 .edate{font-family:var(--mono);font-size:11px;color:var(--text-faint);flex-shrink:0}
@@ -83,13 +84,19 @@ select{-webkit-appearance:auto;appearance:auto}
 .total-bar .tlabel{color:var(--text-muted)}
 .total-bar .tamount{font-family:var(--mono);font-weight:500;color:var(--danger)}
 .fixed-list{display:flex;flex-direction:column;gap:5px}
-.fixed-item{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--surface2);border-radius:var(--r);border:1px solid transparent}
+.fixed-item{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--surface2);border-radius:var(--r);border:1px solid transparent;transition:opacity .15s}
+.fixed-item.dragging{opacity:.4;border:1px dashed var(--border)}
+.fixed-item.drag-over{border-color:var(--accent)}
+.drag-handle{color:var(--text-faint);font-size:16px;cursor:grab;flex-shrink:0;padding:0 2px;touch-action:none;user-select:none}
+.drag-handle:active{cursor:grabbing}
 .fixed-item.dimmed{opacity:.35;text-decoration:line-through}
 .ftag{font-size:10px;padding:2px 6px;border-radius:20px;border:1px solid;flex-shrink:0}
 .tag-fixed{background:var(--blue-light);color:var(--blue);border-color:#A8C4E8}
 .tag-invest{background:var(--accent-light);color:var(--accent-text);border-color:#9ECBAF}
 .tag-repay{background:var(--purple-light);color:var(--purple);border-color:#BDB0DC}
 .tag-utility{background:#FFF0F0;color:#8B2A2A;border-color:#E8B0B0}
+.tag-budget{background:#FFF8EC;color:#7A5A1A;border-color:#E8D48A}
+.cat-transport{background:#F0FFF4;color:#1A5C3A;border-color:#90D4A8}
 .fname{flex:1;font-size:13px}
 .famt{font-family:var(--mono);font-size:13px;color:var(--text-muted)}
 .pbar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:5px}
@@ -178,6 +185,7 @@ select{-webkit-appearance:auto;appearance:auto}
         <option value="beauty">美容</option>
         <option value="hobby">趣味・娯楽</option>
         <option value="social">交遊費</option>
+        <option value="transport">ドライブ費</option>
         <option value="travel">旅行</option>
         <option value="other">その他</option>
       </select>
@@ -287,6 +295,7 @@ select{-webkit-appearance:auto;appearance:auto}
         <option value="beauty">美容</option>
         <option value="hobby">趣味・娯楽</option>
         <option value="social">交遊費</option>
+        <option value="transport">ドライブ費</option>
         <option value="travel">旅行</option>
         <option value="other">その他</option>
       </select>
@@ -364,17 +373,25 @@ var INITIAL_DEBT = 661000;
 var START_Y = 2026, START_M = 4;
 
 var FIXED_DEFAULT = [
-  {id:1,name:'家賃',amount:42330,type:'fixed',day:26},
-  {id:2,name:'サブスク',amount:6000,type:'fixed',day:26},
-  {id:3,name:'スマホ',amount:6000,type:'fixed',day:26},
-  {id:4,name:'マツダ',amount:10000,type:'fixed',day:26},
-  {id:5,name:'水道光熱費（概算）',amount:15000,type:'utility',day:26,isUtilityPlaceholder:true},
-  {id:6,name:'積立NISA（楽天VTI）',amount:30000,type:'invest',day:1},
-  {id:7,name:'親への返済',amount:30000,type:'repay',day:1},
+  {id:1, name:'家賃',             amount:42330, type:'fixed',   day:26},
+  {id:2, name:'サブスク',         amount:6000,  type:'accordion',day:26,
+    items:[
+      {name:'アマプラ',   amount:600},
+      {name:'スマホギガ', amount:3000},
+      {name:'radiko',     amount:385},
+      {name:'その他',     amount:2015},
+    ]
+  },
+  {id:3, name:'スマホ',           amount:6000,  type:'fixed',   day:26},
+  {id:4, name:'マツダ',           amount:10000, type:'budget',  day:26, linkedCat:'transport', includeInBalance:true},
+  {id:8, name:'エブリカ(食費)',   amount:0,     type:'budget',  day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true},
+  {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
+  {id:6, name:'積立NISA（楽天VTI）',amount:30000,type:'invest',  day:1},
+  {id:7, name:'親への返済',       amount:30000, type:'repay',   day:1},
 ];
 
-var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',travel:'旅行',utility:'光熱費',other:'その他'};
-var CAT_CLASS = {snack:'cat-snack',daily:'cat-daily',clothes:'cat-clothes',beauty:'cat-beauty',hobby:'cat-hobby',social:'cat-social',travel:'cat-travel',utility:'cat-utility',other:'cat-other'};
+var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',transport:'ドライブ費',travel:'旅行',utility:'光熱費',other:'その他'};
+var CAT_CLASS = {snack:'cat-snack',daily:'cat-daily',clothes:'cat-clothes',beauty:'cat-beauty',hobby:'cat-hobby',social:'cat-social',transport:'cat-transport',travel:'cat-travel',utility:'cat-utility',other:'cat-other'};
 var MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 var DOW = ['日','月','火','水','木','金','土'];
 
@@ -407,16 +424,54 @@ function getEntries(y,m){return S.entries[mkey(y,m)]||[];}
 function setEntries(arr){S.entries[curKey()]=arr;}
 function getUtility(y,m){return S.utilities[mkey(y,m)]||null;}
 
+// budget型固定費の残高計算
+function getBudgetBalance(f, y, m){
+  var entries = getEntries(y,m);
+  if(f.linkedCat){
+    // 交通費カテゴリの合計を引く
+    var used = entries.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s,e){return s+e.amount;},0);
+    return f.amount - used;
+  }
+  if(f.linkedKeyword && f.linkedAdd){
+    // キーワードにマッチした変動費の金額を残高に加算
+    var charged = entries.filter(function(e){return e.name.indexOf(f.linkedKeyword)>=0;}).reduce(function(s,e){return s+e.amount;},0);
+    return charged; // チャージ額がそのまま残高
+  }
+  return f.amount;
+}
+
 function getFixedTotal(y,m){
   var util=getUtility(y,m);
   var t=S.fixedItems.reduce(function(s,f){
     if(f.isUtilityPlaceholder&&util) return s;
+    if(f.type==='budget'){
+      if(f.includeInBalance){
+        // マツダ：実際の使用額（交通費合計）を計上
+        var entries=getEntries(y,m);
+        var used=entries.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s2,e){return s2+e.amount;},0);
+        return s+used;
+      }
+      // エブリカ：変動費除外済みなので固定費にも計上しない
+      return s;
+    }
+    if(f.type==='accordion') return s+f.amount;
     return s+f.amount;
   },0);
   if(util) t+=(util.water+util.gas+util.elec);
   return t;
 }
-function getVariableTotal(y,m){return getEntries(y,m).reduce(function(s,e){return s+e.amount;},0);}
+
+function getVariableTotal(y,m){
+  // エブリカチャージのみ変動費から除外（ドライブ費は収支に含める＝変動費に残す）
+  var entries=getEntries(y,m);
+  var linkedKws=S.fixedItems.filter(function(f){return f.type==='budget'&&f.linkedKeyword&&f.linkedAdd;}).map(function(f){return f.linkedKeyword;});
+  return entries.reduce(function(s,e){
+    var skip=false;
+    linkedKws.forEach(function(kw){if(e.name.indexOf(kw)>=0) skip=true;});
+    if(skip) return s;
+    return s+e.amount;
+  },0);
+}
 
 function calcAccum(toY,toM){
   var assets=INITIAL_ASSETS,debt=INITIAL_DEBT,nisa=0;
@@ -491,9 +546,11 @@ function renderEntries(y,m){
   var rev=[].concat(entries).reverse();
   rev.forEach(function(e,ri){
     var i=entries.length-1-ri;
+    var excludeBadge=e.excludeVar?'<span style="font-size:9px;background:var(--warn-light);color:var(--warn);border:1px solid #E8D48A;border-radius:10px;padding:1px 5px;flex-shrink:0">固定費扱い</span>':'';
     html+='<div class="entry-item" onclick="openEditModal('+i+')" style="cursor:pointer">'+
       '<span class="ecat '+(CAT_CLASS[e.cat]||'cat-other')+'">'+(CAT_LABELS[e.cat]||'その他')+'</span>'+
       '<span class="ename">'+e.name+'</span>'+
+      excludeBadge+
       '<span class="eamt">'+fmt(e.amount)+'</span>'+
       '<span class="edate">'+e.day+'日</span>'+
       '<button class="del-btn" onclick="event.stopPropagation();delEntry('+i+')">×</button>'+
@@ -537,17 +594,54 @@ function saveEdit(){
 
 function renderFixed(y,m){
   var util=getUtility(y,m);
-  var tagMap={fixed:'固定費',invest:'積立',repay:'返済',utility:'光熱費'};
-  var tagClass={fixed:'tag-fixed',invest:'tag-invest',repay:'tag-repay',utility:'tag-utility'};
+  var tagMap={fixed:'固定費',invest:'積立',repay:'返済',utility:'光熱費',budget:'予算',accordion:'固定費'};
+  var tagClass={fixed:'tag-fixed',invest:'tag-invest',repay:'tag-repay',utility:'tag-utility',budget:'tag-budget',accordion:'tag-fixed'};
   var html='';
-  S.fixedItems.forEach(function(f){
+  S.fixedItems.forEach(function(f,idx){
     var dimmed=f.isUtilityPlaceholder&&util?' dimmed':'';
-    html+='<div class="fixed-item'+dimmed+'">'+
-      '<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'+
-      '<span class="fname">'+f.name+'</span>'+
-      '<span class="famt">'+fmt(f.amount)+'</span>'+
-      '<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'+
-    '</div>';
+    var amtDisplay='';
+    if(f.type==='budget'){
+      var bal=getBudgetBalance(f,y,m);
+      var balColor=bal>=0?'var(--accent)':'var(--danger)';
+      if(f.linkedCat){
+        var ents=getEntries(y,m);
+        var used=ents.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s,e){return s+e.amount;},0);
+        amtDisplay='<span style="font-family:var(--mono);font-size:13px;color:'+balColor+'">残 '+bal.toLocaleString('ja-JP')+'円</span>'
+          +'<span style="font-size:10px;color:var(--text-faint);margin-left:4px">使用 '+used.toLocaleString('ja-JP')+'円</span>';
+      } else if(f.linkedKeyword){
+        amtDisplay='<span style="font-family:var(--mono);font-size:13px;color:'+balColor+'">'+bal.toLocaleString('ja-JP')+'円</span>';
+      }
+    } else if(f.type==='accordion'){
+      var isOpen=f._open?true:false;
+      amtDisplay='<span class="famt">'+fmt(f.amount)+'</span>'
+        +'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+(isOpen?'▲':'▼')+'</button>';
+    } else {
+      amtDisplay='<span class="famt">'+fmt(f.amount)+'</span>';
+    }
+    html+='<div class="fixed-item'+dimmed+'" draggable="true" data-idx="'+idx+'" '
+      +'ondragstart="dragStart(event,'+idx+')" ondragover="dragOver(event)" ondrop="dragDrop(event,'+idx+')" ondragend="dragEnd()">'
+      +'<span style="cursor:grab;color:var(--text-faint);font-size:16px;flex-shrink:0">⠿</span>'
+      +'<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'
+      +'<span class="fname">'+f.name+'</span>'
+      +amtDisplay
+      +'<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'
+      +'</div>';
+    // アコーディオン展開
+    if(f.type==='accordion'&&f._open&&f.items){
+      f.items.forEach(function(item,ii){
+        html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 10px 6px 32px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border);margin-top:2px">'
+          +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ '+item.name+'</span>'
+          +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(item.amount)+'</span>'
+          +'<button onclick="editAccordionItem('+f.id+','+ii+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:0 3px">✏️</button>'
+          +'<button onclick="delAccordionItem('+f.id+','+ii+')" class="del-btn" style="font-size:16px">×</button>'
+          +'</div>';
+      });
+      html+='<div style="display:flex;gap:6px;padding:6px 10px 4px 32px;margin-top:2px">'
+        +'<input type="text" id="acc-name-'+f.id+'" placeholder="項目名" autocomplete="off" style="flex:1;font-size:14px;padding:7px 8px">'
+        +'<input type="number" id="acc-amt-'+f.id+'" placeholder="金額" style="width:88px;font-size:14px;padding:7px 8px" inputmode="numeric">'
+        +'<button onclick="addAccordionItem('+f.id+')" class="btn btn-primary" style="font-size:12px;padding:7px 10px">追加</button>'
+        +'</div>';
+    }
   });
   document.getElementById('fixed-list').innerHTML=html;
 
@@ -566,6 +660,57 @@ function renderFixed(y,m){
     regEl.style.display='none';
   }
 }
+
+function toggleAccordion(id){
+  var f=S.fixedItems.filter(function(x){return x.id===id;})[0];
+  if(f) f._open=!f._open;
+  save();render();
+}
+function addAccordionItem(fid){
+  var f=S.fixedItems.filter(function(x){return x.id===fid;})[0];
+  if(!f) return;
+  var name=document.getElementById('acc-name-'+fid).value.trim();
+  var amt=parseInt(document.getElementById('acc-amt-'+fid).value)||0;
+  if(!name||amt<=0){alert('項目名と金額を入力してください');return;}
+  if(!f.items) f.items=[];
+  f.items.push({name:name,amount:amt});
+  f.amount=f.items.reduce(function(s,i){return s+i.amount;},0);
+  save();render();
+}
+function delAccordionItem(fid,ii){
+  var f=S.fixedItems.filter(function(x){return x.id===fid;})[0];
+  if(!f||!f.items) return;
+  f.items.splice(ii,1);
+  f.amount=f.items.reduce(function(s,i){return s+i.amount;},0);
+  save();render();
+}
+function editAccordionItem(fid,ii){
+  var f=S.fixedItems.filter(function(x){return x.id===fid;})[0];
+  if(!f||!f.items) return;
+  var item=f.items[ii];
+  var newName=prompt('項目名',item.name);
+  if(newName===null) return;
+  var newAmt=parseInt(prompt('金額',item.amount));
+  if(isNaN(newAmt)||newAmt<=0) return;
+  f.items[ii]={name:newName,amount:newAmt};
+  f.amount=f.items.reduce(function(s,i){return s+i.amount;},0);
+  save();render();
+}
+
+// ドラッグ並べ替え
+var dragSrcIdx=-1;
+function dragStart(e,idx){dragSrcIdx=idx;e.dataTransfer.effectAllowed='move';}
+function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function dragDrop(e,idx){
+  e.preventDefault();
+  if(dragSrcIdx<0||dragSrcIdx===idx) return;
+  var items=S.fixedItems;
+  var moved=items.splice(dragSrcIdx,1)[0];
+  items.splice(idx,0,moved);
+  S.fixedItems=items;
+  save();render();
+}
+function dragEnd(){dragSrcIdx=-1;}
 
 function renderCalendar(y,m){
   document.getElementById('cal-title').textContent=y+'年 '+MN[m];
@@ -689,8 +834,17 @@ function addEntry(){
   var amount=parseInt(document.getElementById('v-amount').value);
   var cat=document.getElementById('v-cat').value;
   if(!name||!amount||amount<=0) return;
+
+  // エブリカチャージチェック
+  var isEbrika=false;
+  S.fixedItems.forEach(function(f){
+    if(f.linkedKeyword&&name.indexOf(f.linkedKeyword)>=0) isEbrika=true;
+  });
+
   var entries=getEntries(S.curY,S.curM);
-  entries.push({name:name,amount:amount,cat:cat,day:new Date().getDate(),id:Date.now()});
+  entries.push({name:name,amount:amount,cat:cat,day:new Date().getDate(),id:Date.now(),
+    excludeVar: (cat==='transport'||isEbrika) // 変動費合計から除外フラグ
+  });
   setEntries(entries);
   document.getElementById('v-name').value='';
   document.getElementById('v-amount').value='';
