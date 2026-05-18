@@ -486,7 +486,7 @@ var S = loadState();
 
 function loadState(){
   try{
-    var s = localStorage.getItem('kakeibo_v5');
+    var s = localStorage.getItem('kakeibo_v6') || localStorage.getItem('kakeibo_v5');
     if(s){
       var state = JSON.parse(s);
       // マイグレーション：マツダ・エブリカをbudget-accordionに更新、NISAを0円に
@@ -526,7 +526,7 @@ function loadState(){
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
   };
 }
-function save(){try{localStorage.setItem('kakeibo_v5',JSON.stringify(S));}catch(e){}}
+function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
 
 function mkey(y,m){return y+'-'+(m+1<10?'0':'')+(m+1);}
 function curKey(){return mkey(S.curY,S.curM);}
@@ -990,26 +990,12 @@ function renderCalendar(y,m){
     var hasFixed=!!fixedDays[d];
     var incAmt=incomeDays[d]||0;
     var cls='cal-cell'+(isToday?' today':'')+(incAmt>0?' has-income':'');
-    // 変動費の内訳（excludeVar除外）
-    var visEntries=entries2.filter(function(e){return !e.excludeVar;});
-    var maxShow=3;
-    var entryHtml='';
-    if(incAmt>0){
-      entryHtml+='<div class="cal-income">+'+fmtCal(incAmt)+'</div>';
-    }
-    visEntries.slice(0,maxShow).forEach(function(e){
-      var short=e.name.length>5?e.name.slice(0,5)+'…':e.name;
-      entryHtml+='<div class="cal-expense">'+short+' -'+fmtCal(e.amount)+'</div>';
-    });
-    if(visEntries.length>maxShow){
-      entryHtml+='<div style="font-size:8px;color:var(--text-faint);margin-top:1px">他'+(visEntries.length-maxShow)+'件</div>';
-    }
-    if(hasFixed&&visEntries.length===0&&incAmt===0){
-      entryHtml+='<span class="cal-fixed-dot"></span>';
-    }
+    var dayExpVis=entries2.filter(function(e){return !e.excludeVar;}).reduce(function(s,e){return s+e.amount;},0);
     html+='<div class="'+cls+'" onclick="openDayModal('+d+')">'
       +'<div class="cal-day '+(dow===0?'sun':dow===6?'sat':'')+'">'+(d)+'</div>'
-      +entryHtml
+      +(incAmt>0?'<div class="cal-income">+'+fmtCal(incAmt)+'</div>':'')
+      +(dayExpVis>0?'<div class="cal-expense">-'+fmtCal(dayExpVis)+'</div>':'')
+      +(hasFixed&&dayExpVis===0&&incAmt===0?'<span class="cal-fixed-dot"></span>':'')
       +'</div>';
   }
   grid.innerHTML=html;
