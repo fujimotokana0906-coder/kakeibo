@@ -470,7 +470,7 @@ var FIXED_DEFAULT = [
       {name:'車の保険',   amount:4000},
     ]
   },
-  {id:8, name:'エブリカ(食費)',   amount:0,     type:'budget',  day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
+  {id:8, name:'エブリカ(食費)',   amount:10000, type:'budget-accordion', day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
   {id:6, name:'積立NISA（楽天VTI）',amount:0,    type:'invest',  day:1},
   {id:7, name:'親への返済',       amount:30000, type:'repay',   day:1},
@@ -489,13 +489,19 @@ function loadState(){
     var s = localStorage.getItem('kakeibo_v5');
     if(s){
       var state = JSON.parse(s);
-      // マイグレーション：マツダをbudget-accordionに更新、NISAを0円に
+      // マイグレーション：マツダ・エブリカをbudget-accordionに更新、NISAを0円に
       state.fixedItems = state.fixedItems.map(function(f){
         if(f.id===4 && f.type==='budget'){
           return Object.assign({},f,{
             type:'budget-accordion',
             amount:14000,
             items: f.items || [{name:'マツダ本体',amount:10000},{name:'車の保険',amount:4000}]
+          });
+        }
+        if(f.id===8 && f.type==='budget'){
+          return Object.assign({},f,{
+            type:'budget-accordion',
+            amount:10000
           });
         }
         if(f.id===6 && f.amount===30000){
@@ -540,11 +546,17 @@ function getBudgetBalance(f, y, m){
     return base - used;
   }
   if(f.linkedKeyword && f.linkedAdd){
-    var def = f.defaultCharge || 0;
-    var charged = entries.filter(function(e){return e.name.indexOf(f.linkedKeyword)>=0;}).reduce(function(s,e){
-      return s + (e._autoCharge ? def : e.amount);
-    },0);
-    return charged;
+    var def = f.defaultCharge || 10000;
+    var matched = entries.filter(function(e){return e.name.indexOf(f.linkedKeyword)>=0;});
+    if(matched.length === 0){
+      // チャージ入力なし：デフォルト10,000円を表示
+      return def;
+    }
+    // チャージ入力あり：_autoChargeならdefault、それ以外は実額（追加分）を加算
+    var total = matched.reduce(function(s,e){
+      return s + (e._autoCharge ? def : (def + e.amount));
+    }, 0);
+    return total;
   }
   return f.amount;
 }
@@ -684,18 +696,20 @@ function renderEntries(y,m){
   if(!entries.length){list.innerHTML='<div class="empty-state">📋 まだ記録がありません</div>';return;}
   var html='';
   var rev=[].concat(entries).reverse();
+  var shownCount=0;
   rev.forEach(function(e,ri){
     var i=entries.length-1-ri;
-    var excludeBadge=e.excludeVar?'<span style="font-size:9px;background:var(--warn-light);color:var(--warn);border:1px solid #E8D48A;border-radius:10px;padding:1px 5px;flex-shrink:0">固定費扱い</span>':'';
+    if(e.excludeVar) return; // エブリカチャージなど固定費扱いは非表示
+    shownCount++;
     html+='<div class="entry-item" onclick="openEditModal('+i+')" style="cursor:pointer">'+
       '<span class="ecat '+(CAT_CLASS[e.cat]||'cat-other')+'">'+(CAT_LABELS[e.cat]||'その他')+'</span>'+
       '<span class="ename">'+e.name+'</span>'+
-      excludeBadge+
       '<span class="eamt">'+fmt(e.amount)+'</span>'+
       '<span class="edate">'+e.day+'日</span>'+
       '<button class="del-btn" onclick="event.stopPropagation();delEntry('+i+')">×</button>'+
     '</div>';
   });
+  if(shownCount===0) html='<div class="empty-state">📋 まだ記録がありません</div>';
   list.innerHTML=html;
 }
 
@@ -755,7 +769,9 @@ function renderFixed(y,m){
           +'<span style="font-family:var(--mono);font-size:13px;color:'+totalColor+'">'+total.toLocaleString('ja-JP')+'円</span>';
       } else if(f.linkedKeyword){
         var balColor2=bal>=0?'var(--accent)':'var(--danger)';
-        amtDisplay='<span style="font-family:var(--mono);font-size:13px;color:'+balColor2+'">'+bal.toLocaleString('ja-JP')+'円</span>';
+        var ebArrow=f.type==='budget-accordion'?(f._open?'▲':'▼'):'';
+        amtDisplay=(f.type==='budget-accordion'?'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+ebArrow+'</button>':'')
+          +'<span style="font-family:var(--mono);font-size:13px;color:'+balColor2+'">'+bal.toLocaleString('ja-JP')+'円</span>';
       }
     } else if(f.type==='accordion'){
       var isOpen=f._open?true:false;
@@ -764,9 +780,13 @@ function renderFixed(y,m){
     } else {
       amtDisplay='<span class="famt">'+fmt(f.amount)+'</span>';
     }
-    html+='<div class="fixed-item'+dimmed+'" draggable="true" data-idx="'+idx+'" '
-      +'ondragstart="dragStart(event,'+idx+')" ondragover="dragOver(event)" ondrop="dragDrop(event,'+idx+')" ondragend="dragEnd()">'
-      +'<span style="cursor:grab;color:var(--text-faint);font-size:16px;flex-shrink:0">⠿</span>'
+    var isFirst=idx===0;
+    var isLast=idx===S.fixedItems.length-1;
+    html+='<div class="fixed-item'+dimmed+'">'
+      +'<span style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">'
+      +'<button onclick="moveFixed('+idx+',-1)" style="background:none;border:none;cursor:pointer;color:'+(isFirst?'var(--text-faint)':'var(--text-muted)')+';font-size:11px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent" '+(isFirst?'disabled':'')+'>▲</button>'
+      +'<button onclick="moveFixed('+idx+',1)" style="background:none;border:none;cursor:pointer;color:'+(isLast?'var(--text-faint)':'var(--text-muted)')+';font-size:11px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent" '+(isLast?'disabled':'')+'>▼</button>'
+      +'</span>'
       +'<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'
       +'<span class="fname">'+f.name+'</span>'
       +amtDisplay
@@ -810,6 +830,27 @@ function renderFixed(y,m){
           +'<input type="number" id="acc-amt-'+f.id+'" placeholder="金額" style="width:88px;font-size:14px;padding:7px 8px" inputmode="numeric">'
           +'<button onclick="addAccordionItem('+f.id+')" class="btn btn-primary" style="font-size:12px;padding:7px 10px">追加</button>'
           +'</div>';
+      } else if(f.linkedKeyword){
+        // エブリカ：変動費から該当エントリを取得して表示
+        var ebEntries=getEntries(y,m).filter(function(e){return e.name.indexOf(f.linkedKeyword)>=0;});
+        var def=f.defaultCharge||10000;
+        if(ebEntries.length===0){
+          // チャージ入力なし→デフォルト表示
+          html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 10px 6px 32px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border);margin-top:2px">'
+            +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ 基本チャージ</span>'
+            +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(def)+'</span>'
+            +'</div>';
+        } else {
+          ebEntries.forEach(function(e,ei){
+            var dispAmt=e._autoCharge?def:def+e.amount;
+            var eIdx=getEntries(y,m).indexOf(e);
+            html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 10px 6px 32px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border);margin-top:2px">'
+              +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ '+e.day+'日 チャージ</span>'
+              +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(dispAmt)+'</span>'
+              +'<button onclick="delEntry('+eIdx+')" class="del-btn" style="font-size:16px">×</button>'
+              +'</div>';
+          });
+        }
       } else if(f.items){
         // サブスクなど通常アコーディオン
         f.items.forEach(function(item,ii){
@@ -884,6 +925,16 @@ function editAccordionItem(fid,ii){
 
 // ドラッグ並べ替え
 var dragSrcIdx=-1;
+function moveFixed(idx, dir){
+  var items=S.fixedItems;
+  var newIdx=idx+dir;
+  if(newIdx<0||newIdx>=items.length) return;
+  var tmp=items[idx];
+  items[idx]=items[newIdx];
+  items[newIdx]=tmp;
+  S.fixedItems=items;
+  save();render();
+}
 function dragStart(e,idx){dragSrcIdx=idx;e.dataTransfer.effectAllowed='move';}
 function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
 function dragDrop(e,idx){
