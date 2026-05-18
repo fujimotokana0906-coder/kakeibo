@@ -189,7 +189,65 @@ select{-webkit-appearance:auto;appearance:auto}
         <option value="travel">旅行</option>
         <option value="other">その他</option>
       </select>
-      <button class="btn btn-primary" onclick="addEntry()">追加</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary" onclick="addEntry()">追加</button>
+        <button class="btn" onclick="openCameraMenu()" style="padding:9px 12px;background:transparent;color:var(--accent);border-color:var(--accent);display:flex;align-items:center;justify-content:center" title="写真/カメラから読み取り"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      </div>
+    </div>
+    <!-- カメラメニュー -->
+    <input type="file" id="receipt-file" accept="image/*" style="display:none" onchange="handleReceiptFile(event)">
+    <input type="file" id="receipt-camera" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptFile(event)">
+    <!-- AI解析中オーバーレイ -->
+    <div id="receipt-loading" style="display:none;text-align:center;padding:20px;background:var(--surface2);border-radius:var(--r);margin-top:8px">
+      <div style="font-size:13px;color:var(--text-muted)">📷 AIが読み取り中...</div>
+    </div>
+    <!-- カメラ選択メニュー -->
+    <div id="camera-menu" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;justify-content:center">
+      <div style="background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;padding:20px;width:100%;max-width:480px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:16px;text-align:center">レシート・支払い画面を読み取る</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" style="width:100%;font-size:14px" onclick="closeCameraMenu();document.getElementById('receipt-camera').click()">📸 カメラで撮影</button>
+          <button class="btn btn-ghost" style="width:100%;font-size:14px" onclick="closeCameraMenu();document.getElementById('receipt-file').click()">🖼️ 写真ライブラリから選択</button>
+          <button class="btn btn-ghost" style="width:100%;font-size:14px;color:var(--danger)" onclick="closeCameraMenu()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+    <!-- AI解析結果確認モーダル -->
+    <div id="receipt-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;justify-content:center">
+      <div style="background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;padding:20px;width:100%;max-width:480px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+          <span>読み取り結果を確認</span>
+          <button onclick="closeReceiptModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-faint)">×</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">内容</div>
+            <input type="text" id="receipt-name" style="width:100%">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">金額</div>
+            <input type="number" id="receipt-amount" inputmode="numeric" style="width:100%">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">カテゴリ</div>
+            <select id="receipt-cat" style="width:100%">
+              <option value="snack">軽食</option>
+              <option value="daily">日用品</option>
+              <option value="clothes">洋服</option>
+              <option value="beauty">美容</option>
+              <option value="hobby">趣味・娯楽</option>
+              <option value="social">交遊費</option>
+              <option value="transport">ドライブ費</option>
+              <option value="travel">旅行</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-ghost" onclick="closeReceiptModal()">キャンセル</button>
+          <button class="btn btn-primary" onclick="addFromReceipt()">追加する</button>
+        </div>
+      </div>
     </div>
     <div class="divider"></div>
     <div class="total-bar">
@@ -328,6 +386,9 @@ select{-webkit-appearance:auto;appearance:auto}
 
     <div style="margin-bottom:20px">
       <div class="card-title">給料の設定（毎月10日に更新）</div>
+      <div id="salary-paid-badge" style="display:none;margin-bottom:8px">
+        <span style="background:var(--accent-light);color:var(--accent-text);border:1px solid #9ECBAF;border-radius:20px;font-size:12px;padding:3px 10px;font-family:var(--mono)">✓ 振込済</span>
+      </div>
       <div style="display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
         <span style="font-size:12px;color:var(--accent-text);flex-shrink:0">今月の給料</span>
         <input type="number" id="salary-input" inputmode="numeric" placeholder="200000" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #9ECBAF;border-radius:0;padding:2px 4px;width:100px;color:var(--accent-text)">
@@ -335,6 +396,26 @@ select{-webkit-appearance:auto;appearance:auto}
       </div>
       <button class="btn btn-primary" style="width:100%" onclick="saveSalary()">この月の給料を保存</button>
       <div style="font-size:11px;color:var(--text-faint);margin-top:6px">未設定の月は基本給 200,000円で計算</div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div class="card-title">月末実際在高の入力</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">月末に実際の口座残高を入力すると差異を自動調整して翌月に引き継ぎます</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px">
+          <span style="font-size:13px;flex:1">楽天銀行</span>
+          <input type="number" id="balance-rakuten" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
+          <span style="font-size:12px;color:var(--text-muted)">円</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px">
+          <span style="font-size:13px;flex:1">ゆうちょ銀行</span>
+          <input type="number" id="balance-yucho" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
+          <span style="font-size:12px;color:var(--text-muted)">円</span>
+        </div>
+      </div>
+      <div id="balance-adj-preview" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;padding:8px;background:var(--surface2);border-radius:var(--r);display:none"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveBalance()">在高を確定して翌月に引き継ぐ</button>
+      <div id="balance-saved-msg" style="display:none;margin-top:6px;font-size:12px;color:var(--accent-text);font-family:var(--mono)"></div>
     </div>
 
     <div style="margin-bottom:20px">
@@ -383,10 +464,15 @@ var FIXED_DEFAULT = [
     ]
   },
   {id:3, name:'スマホ',           amount:6000,  type:'fixed',   day:26},
-  {id:4, name:'マツダ',           amount:10000, type:'budget',  day:26, linkedCat:'transport', includeInBalance:true},
-  {id:8, name:'エブリカ(食費)',   amount:0,     type:'budget',  day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true},
+  {id:4, name:'マツダ',           amount:14000, type:'budget-accordion', day:26, linkedCat:'transport', includeInBalance:true,
+    items:[
+      {name:'マツダ本体', amount:10000},
+      {name:'車の保険',   amount:4000},
+    ]
+  },
+  {id:8, name:'エブリカ(食費)',   amount:0,     type:'budget',  day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
-  {id:6, name:'積立NISA（楽天VTI）',amount:30000,type:'invest',  day:1},
+  {id:6, name:'積立NISA（楽天VTI）',amount:0,    type:'invest',  day:1},
   {id:7, name:'親への返済',       amount:30000, type:'repay',   day:1},
 ];
 
@@ -401,7 +487,26 @@ var S = loadState();
 function loadState(){
   try{
     var s = localStorage.getItem('kakeibo_v5');
-    if(s) return JSON.parse(s);
+    if(s){
+      var state = JSON.parse(s);
+      // マイグレーション：マツダをbudget-accordionに更新、NISAを0円に
+      state.fixedItems = state.fixedItems.map(function(f){
+        if(f.id===4 && f.type==='budget'){
+          return Object.assign({},f,{
+            type:'budget-accordion',
+            amount:14000,
+            items: f.items || [{name:'マツダ本体',amount:10000},{name:'車の保険',amount:4000}]
+          });
+        }
+        if(f.id===6 && f.amount===30000){
+          return Object.assign({},f,{amount:0});
+        }
+        return f;
+      });
+      if(!state.bankBalances) state.bankBalances={};
+      if(!state.balanceAdj) state.balanceAdj={};
+      return state;
+    }
   }catch(e){}
   var imp = IMPORTED_DATA || {entries:{},salaries:{},utilities:{}};
   return {
@@ -410,7 +515,9 @@ function loadState(){
     nextId:20,
     entries: imp.entries || {},
     salaries: imp.salaries || {},
-    utilities: imp.utilities || {}
+    utilities: imp.utilities || {},
+    bankBalances: {},      // {mkey: {rakuten, yucho}}  月末実際在高
+    balanceAdj: {},        // {mkey: 差異金額（記録用）}
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v5',JSON.stringify(S));}catch(e){}}
@@ -428,14 +535,16 @@ function getUtility(y,m){return S.utilities[mkey(y,m)]||null;}
 function getBudgetBalance(f, y, m){
   var entries = getEntries(y,m);
   if(f.linkedCat){
-    // 交通費カテゴリの合計を引く
+    var base = f.items ? f.items.reduce(function(s,i){return s+i.amount;},0) : f.amount;
     var used = entries.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s,e){return s+e.amount;},0);
-    return f.amount - used;
+    return base - used;
   }
   if(f.linkedKeyword && f.linkedAdd){
-    // キーワードにマッチした変動費の金額を残高に加算
-    var charged = entries.filter(function(e){return e.name.indexOf(f.linkedKeyword)>=0;}).reduce(function(s,e){return s+e.amount;},0);
-    return charged; // チャージ額がそのまま残高
+    var def = f.defaultCharge || 0;
+    var charged = entries.filter(function(e){return e.name.indexOf(f.linkedKeyword)>=0;}).reduce(function(s,e){
+      return s + (e._autoCharge ? def : e.amount);
+    },0);
+    return charged;
   }
   return f.amount;
 }
@@ -444,14 +553,12 @@ function getFixedTotal(y,m){
   var util=getUtility(y,m);
   var t=S.fixedItems.reduce(function(s,f){
     if(f.isUtilityPlaceholder&&util) return s;
-    if(f.type==='budget'){
+    if(f.type==='budget'||f.type==='budget-accordion'){
       if(f.includeInBalance){
-        // マツダ：実際の使用額（交通費合計）を計上
         var entries=getEntries(y,m);
         var used=entries.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s2,e){return s2+e.amount;},0);
         return s+used;
       }
-      // エブリカ：変動費除外済みなので固定費にも計上しない
       return s;
     }
     if(f.type==='accordion') return s+f.amount;
@@ -477,10 +584,19 @@ function calcAccum(toY,toM){
   var assets=INITIAL_ASSETS,debt=INITIAL_DEBT,nisa=0;
   var y=START_Y,m=START_M;
   while(y<toY||(y===toY&&m<=toM)){
+    // 月末在高が確定している場合はその値を初期値として使用
+    var initKey=mkey(y,m)+'_init';
+    if(S.balanceAdj&&S.balanceAdj[initKey]!=null){
+      assets=S.balanceAdj[initKey];
+    }
     assets+=getIncome(y,m)-getFixedTotal(y,m)-getVariableTotal(y,m);
     var rp=S.fixedItems.filter(function(f){return f.type==='repay';}).reduce(function(s,f){return s+f.amount;},0);
     debt=Math.max(debt-rp,0);
     nisa+=S.fixedItems.filter(function(f){return f.type==='invest';}).reduce(function(s,f){return s+f.amount;},0);
+    // 月末実際在高で上書き
+    if(S.bankBalances&&S.bankBalances[mkey(y,m)]){
+      assets=S.bankBalances[mkey(y,m)].total;
+    }
     m++;if(m>11){m=0;y++;}
   }
   return {assets:Math.max(assets,0),debt:debt,nisa:nisa};
@@ -503,8 +619,32 @@ function render(){
 
   document.getElementById('s-income').textContent=fmtM(income);
   document.getElementById('s-income-sub').textContent=isBonus(m)?'給料+ボーナス':'';
-  document.getElementById('s-fixed').textContent=fmtM(fixedT);
-  document.getElementById('s-var').textContent=fmtM(varT);
+  // 固定費・変動費の予算超過チェック
+  var FIXED_BUDGET = 150000;
+  var VAR_BUDGET = 60000;
+  var sFixed=document.getElementById('s-fixed');
+  sFixed.textContent=fmtM(fixedT);
+  sFixed.className='stat-value '+(fixedT>FIXED_BUDGET?'negative':'neutral');
+
+  var sVar=document.getElementById('s-var');
+  sVar.textContent=fmtM(varT);
+  sVar.className='stat-value '+(varT>VAR_BUDGET?'negative':'neutral');
+
+  // 振込済バッジ
+  updateSalaryBadge();
+
+  // 在高入力の既存値を表示
+  var bk=S.bankBalances&&S.bankBalances[curKey()];
+  if(bk){
+    document.getElementById('balance-rakuten').value=bk.rakuten||'';
+    document.getElementById('balance-yucho').value=bk.yucho||'';
+    var msg=document.getElementById('balance-saved-msg');
+    var adj=S.balanceAdj&&S.balanceAdj[curKey()]||0;
+    var adjStr=adj>=0?'+'+fmt(adj):'-'+fmt(Math.abs(adj));
+    msg.textContent='登録済: 楽天'+fmt(bk.rakuten||0)+' / ゆうちょ'+fmt(bk.yucho||0)+' / 差異'+adjStr;
+    msg.style.color=adj>=0?'var(--accent-text)':'var(--danger)';
+    msg.style.display='block';
+  }
 
   var sBal=document.getElementById('s-bal');
   sBal.textContent=(balance>=0?'+':'')+fmtM(balance);
@@ -594,27 +734,33 @@ function saveEdit(){
 
 function renderFixed(y,m){
   var util=getUtility(y,m);
-  var tagMap={fixed:'固定費',invest:'積立',repay:'返済',utility:'光熱費',budget:'予算',accordion:'固定費'};
-  var tagClass={fixed:'tag-fixed',invest:'tag-invest',repay:'tag-repay',utility:'tag-utility',budget:'tag-budget',accordion:'tag-fixed'};
+  var tagMap={fixed:'固定費',invest:'積立',repay:'返済',utility:'光熱費',budget:'予算','budget-accordion':'予算',accordion:'固定費'};
+  var tagClass={fixed:'tag-fixed',invest:'tag-invest',repay:'tag-repay',utility:'tag-utility',budget:'tag-budget','budget-accordion':'tag-budget',accordion:'tag-fixed'};
   var html='';
   S.fixedItems.forEach(function(f,idx){
     var dimmed=f.isUtilityPlaceholder&&util?' dimmed':'';
     var amtDisplay='';
-    if(f.type==='budget'){
+    if(f.type==='budget'||f.type==='budget-accordion'){
       var bal=getBudgetBalance(f,y,m);
-      var balColor=bal>=0?'var(--accent)':'var(--danger)';
       if(f.linkedCat){
         var ents=getEntries(y,m);
         var used=ents.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s,e){return s+e.amount;},0);
-        amtDisplay='<span style="font-family:var(--mono);font-size:13px;color:'+balColor+'">残 '+bal.toLocaleString('ja-JP')+'円</span>'
-          +'<span style="font-size:10px;color:var(--text-faint);margin-left:4px">使用 '+used.toLocaleString('ja-JP')+'円</span>';
+        var fixedPart=f.items?f.items.reduce(function(s,i){return s+i.amount;},0):f.amount;
+        var total=fixedPart+used;
+        var overBudget=total>=14000;
+        var totalColor=overBudget?'var(--danger)':'var(--text)';
+        var arrow=f.type==='budget-accordion'?(f._open?'▲':'▼'):'';
+        // 閉じた状態：▼ 合計金額（サブスクと同じ形）
+        amtDisplay=(f.type==='budget-accordion'?'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+arrow+'</button>':'')
+          +'<span style="font-family:var(--mono);font-size:13px;color:'+totalColor+'">'+total.toLocaleString('ja-JP')+'円</span>';
       } else if(f.linkedKeyword){
-        amtDisplay='<span style="font-family:var(--mono);font-size:13px;color:'+balColor+'">'+bal.toLocaleString('ja-JP')+'円</span>';
+        var balColor2=bal>=0?'var(--accent)':'var(--danger)';
+        amtDisplay='<span style="font-family:var(--mono);font-size:13px;color:'+balColor2+'">'+bal.toLocaleString('ja-JP')+'円</span>';
       }
     } else if(f.type==='accordion'){
       var isOpen=f._open?true:false;
-      amtDisplay='<span class="famt">'+fmt(f.amount)+'</span>'
-        +'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+(isOpen?'▲':'▼')+'</button>';
+      amtDisplay='<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+(isOpen?'▲':'▼')+'</button>'
+        +'<span class="famt">'+fmt(f.amount)+'</span>';
     } else {
       amtDisplay='<span class="famt">'+fmt(f.amount)+'</span>';
     }
@@ -627,20 +773,59 @@ function renderFixed(y,m){
       +'<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'
       +'</div>';
     // アコーディオン展開
-    if(f.type==='accordion'&&f._open&&f.items){
-      f.items.forEach(function(item,ii){
+    if((f.type==='accordion'||f.type==='budget-accordion')&&f._open){
+      if(f.type==='budget-accordion'&&f.linkedCat){
+        // マツダ専用：保険代（内訳）＋ドライブ費使用合計＋合計＋残り
+        var ents2=getEntries(y,m);
+        var used2=ents2.filter(function(e){return e.cat===f.linkedCat;}).reduce(function(s,e){return s+e.amount;},0);
+        var fixedPart2=f.items?f.items.reduce(function(s,i){return s+i.amount;},0):f.amount;
+        var total2=fixedPart2+used2;
+        var remaining=14000-total2;
+        var remColor=remaining>=0?'var(--accent)':'var(--danger)';
+        var overColor=total2>=14000?'var(--danger)':'var(--text)';
+        // 固定内訳（保険など）
+        if(f.items) f.items.forEach(function(item,ii){
+          html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 10px 6px 32px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border);margin-top:2px">'
+            +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ '+item.name+'</span>'
+            +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(item.amount)+'</span>'
+            +'<button onclick="editAccordionItem('+f.id+','+ii+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:0 3px">✏️</button>'
+            +'<button onclick="delAccordionItem('+f.id+','+ii+')" class="del-btn" style="font-size:16px">×</button>'
+            +'</div>';
+        });
+        // ドライブ費（今月使用合計）
         html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 10px 6px 32px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border);margin-top:2px">'
-          +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ '+item.name+'</span>'
-          +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(item.amount)+'</span>'
-          +'<button onclick="editAccordionItem('+f.id+','+ii+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:0 3px">✏️</button>'
-          +'<button onclick="delAccordionItem('+f.id+','+ii+')" class="del-btn" style="font-size:16px">×</button>'
+          +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ ドライブ費（今月）</span>'
+          +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(used2)+'</span>'
           +'</div>';
-      });
-      html+='<div style="display:flex;gap:6px;padding:6px 10px 4px 32px;margin-top:2px">'
-        +'<input type="text" id="acc-name-'+f.id+'" placeholder="項目名" autocomplete="off" style="flex:1;font-size:14px;padding:7px 8px">'
-        +'<input type="number" id="acc-amt-'+f.id+'" placeholder="金額" style="width:88px;font-size:14px;padding:7px 8px" inputmode="numeric">'
-        +'<button onclick="addAccordionItem('+f.id+')" class="btn btn-primary" style="font-size:12px;padding:7px 10px">追加</button>'
-        +'</div>';
+        // 使用合計・残り
+        html+='<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:7px 12px 7px 32px;margin-top:2px;background:var(--surface2);border-radius:var(--r)">'
+          +'<span style="font-size:11px;color:var(--text-faint)">使用 '+fmt(total2)+'</span>'
+          +'<span style="font-size:11px;color:var(--text-faint)">／</span>'
+          +'<span style="font-size:11px;color:var(--text-faint)">残り</span>'
+          +'<span style="font-family:var(--mono);font-size:13px;font-weight:500;color:'+remColor+'">'+fmt(remaining)+'</span>'
+          +'</div>';
+        // 内訳追加フォーム
+        html+='<div style="display:flex;gap:6px;padding:6px 10px 4px 32px;margin-top:2px">'
+          +'<input type="text" id="acc-name-'+f.id+'" placeholder="項目名" autocomplete="off" style="flex:1;font-size:14px;padding:7px 8px">'
+          +'<input type="number" id="acc-amt-'+f.id+'" placeholder="金額" style="width:88px;font-size:14px;padding:7px 8px" inputmode="numeric">'
+          +'<button onclick="addAccordionItem('+f.id+')" class="btn btn-primary" style="font-size:12px;padding:7px 10px">追加</button>'
+          +'</div>';
+      } else if(f.items){
+        // サブスクなど通常アコーディオン
+        f.items.forEach(function(item,ii){
+          html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 10px 6px 32px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border);margin-top:2px">'
+            +'<span style="flex:1;font-size:13px;color:var(--text-muted)">└ '+item.name+'</span>'
+            +'<span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">'+fmt(item.amount)+'</span>'
+            +'<button onclick="editAccordionItem('+f.id+','+ii+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:0 3px">✏️</button>'
+            +'<button onclick="delAccordionItem('+f.id+','+ii+')" class="del-btn" style="font-size:16px">×</button>'
+            +'</div>';
+        });
+        html+='<div style="display:flex;gap:6px;padding:6px 10px 4px 32px;margin-top:2px">'
+          +'<input type="text" id="acc-name-'+f.id+'" placeholder="項目名" autocomplete="off" style="flex:1;font-size:14px;padding:7px 8px">'
+          +'<input type="number" id="acc-amt-'+f.id+'" placeholder="金額" style="width:88px;font-size:14px;padding:7px 8px" inputmode="numeric">'
+          +'<button onclick="addAccordionItem('+f.id+')" class="btn btn-primary" style="font-size:12px;padding:7px 10px">追加</button>'
+          +'</div>';
+      }
     }
   });
   document.getElementById('fixed-list').innerHTML=html;
@@ -681,7 +866,7 @@ function delAccordionItem(fid,ii){
   var f=S.fixedItems.filter(function(x){return x.id===fid;})[0];
   if(!f||!f.items) return;
   f.items.splice(ii,1);
-  f.amount=f.items.reduce(function(s,i){return s+i.amount;},0);
+  f.amount=f.items.length>0?f.items.reduce(function(s,i){return s+i.amount;},0):0;
   save();render();
 }
 function editAccordionItem(fid,ii){
@@ -831,19 +1016,32 @@ function renderGraphs(){
 
 function addEntry(){
   var name=document.getElementById('v-name').value.trim();
-  var amount=parseInt(document.getElementById('v-amount').value);
+  var amtRaw=document.getElementById('v-amount').value;
   var cat=document.getElementById('v-cat').value;
-  if(!name||!amount||amount<=0) return;
+  if(!name) return;
 
-  // エブリカチャージチェック
-  var isEbrika=false;
+  // エブリカチャージ判定
+  var ebrikaFixed=null;
   S.fixedItems.forEach(function(f){
-    if(f.linkedKeyword&&name.indexOf(f.linkedKeyword)>=0) isEbrika=true;
+    if(f.linkedKeyword&&name.indexOf(f.linkedKeyword)>=0) ebrikaFixed=f;
   });
+
+  var amount;
+  var autoCharge=false;
+  if(ebrikaFixed){
+    // エブリカ：金額空白→デフォルト10000円、入力あれば追加チャージ
+    var extra=parseInt(amtRaw)||0;
+    amount = (ebrikaFixed.defaultCharge||10000) + extra;
+    autoCharge=true;
+  } else {
+    amount=parseInt(amtRaw);
+    if(!amount||amount<=0) return;
+  }
 
   var entries=getEntries(S.curY,S.curM);
   entries.push({name:name,amount:amount,cat:cat,day:new Date().getDate(),id:Date.now(),
-    excludeVar: (cat==='transport'||isEbrika) // 変動費合計から除外フラグ
+    _autoCharge:autoCharge,
+    excludeVar:(ebrikaFixed?true:false)
   });
   setEntries(entries);
   document.getElementById('v-name').value='';
@@ -882,7 +1080,54 @@ function saveSalary(){
   if(!val||val<=0){alert('金額を入力してください');return;}
   S.salaries[curKey()]=val;save();render();
   document.getElementById('salary-input').value='';
-  alert(MN[S.curM]+'の給料を '+fmt(val)+' で保存しました');
+  updateSalaryBadge();
+  alert(MN[S.curM]+'の給料を '+fmt(val)+' で保存しました ✓');
+}
+
+function updateSalaryBadge(){
+  var badge=document.getElementById('salary-paid-badge');
+  if(!badge) return;
+  var hasSalary=S.salaries[curKey()]!=null;
+  badge.style.display=hasSalary?'block':'none';
+}
+
+function saveBalance(){
+  var rakuten=parseInt(document.getElementById('balance-rakuten').value)||0;
+  var yucho=parseInt(document.getElementById('balance-yucho').value)||0;
+  if(rakuten===0&&yucho===0){alert('在高を入力してください');return;}
+  var actual=rakuten+yucho;
+  var acc=calcAccum(S.curY,S.curM);
+  var diff=actual-acc.assets;
+  S.bankBalances[curKey()]={rakuten:rakuten,yucho:yucho,total:actual};
+  S.balanceAdj[curKey()]=diff;
+  // 翌月の初期資産調整フラグとして保存
+  var nextM=S.curM+1>11?0:S.curM+1;
+  var nextY=S.curM+1>11?S.curY+1:S.curY;
+  S.balanceAdj[mkey(nextY,nextM)+'_init']=actual;
+  save();
+  var msg=document.getElementById('balance-saved-msg');
+  var diffStr=diff>=0?'+'+fmt(diff):'-'+fmt(Math.abs(diff));
+  msg.textContent='保存しました。差異：'+diffStr+'（家計簿との差）';
+  msg.style.color=diff>=0?'var(--accent-text)':'var(--danger)';
+  msg.style.display='block';
+  var prev=document.getElementById('balance-adj-preview');
+  prev.style.display='none';
+  render();
+}
+
+// 在高入力のリアルタイムプレビュー
+function updateBalancePreview(){
+  var rakuten=parseInt(document.getElementById('balance-rakuten').value)||0;
+  var yucho=parseInt(document.getElementById('balance-yucho').value)||0;
+  var actual=rakuten+yucho;
+  if(actual===0){document.getElementById('balance-adj-preview').style.display='none';return;}
+  var acc=calcAccum(S.curY,S.curM);
+  var diff=actual-acc.assets;
+  var prev=document.getElementById('balance-adj-preview');
+  var diffStr=diff>=0?'+'+fmt(diff):'-'+fmt(Math.abs(diff));
+  prev.textContent='合計 '+fmt(actual)+' / 家計簿上 '+fmt(Math.round(acc.assets))+' / 差異 '+diffStr;
+  prev.style.color=diff>=0?'var(--accent-text)':'var(--danger)';
+  prev.style.display='block';
 }
 
 function changeMonth(d){
@@ -910,8 +1155,92 @@ function resetData(){
   localStorage.removeItem('kakeibo_v5');S=loadState();save();render();
 }
 
-document.getElementById('v-amount').addEventListener('keydown',function(e){if(e.key==='Enter') addEntry();});
+function openCameraMenu(){
+  var m=document.getElementById('camera-menu');
+  m.style.display='flex';
+}
+function closeCameraMenu(){
+  document.getElementById('camera-menu').style.display='none';
+}
+
+function handleReceiptFile(event){
+  var file=event.target.files[0];
+  if(!file) return;
+  event.target.value=''; // リセット
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    var mediaType=file.type||'image/jpeg';
+    analyzeReceipt(base64, mediaType);
+  };
+  reader.readAsDataURL(file);
+}
+
+function analyzeReceipt(base64, mediaType){
+  var loading=document.getElementById('receipt-loading');
+  loading.style.display='block';
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:200,
+      messages:[{
+        role:'user',
+        content:[
+          {type:'image',source:{type:'base64',media_type:mediaType,data:base64}},
+          {type:'text',text:'このレシートまたは支払い画面から「店名または内容」と「合計金額」だけを読み取ってください。以下のJSON形式のみで返答してください（説明不要）：{"name":"店名または内容","amount":金額の数値}。金額が読み取れない場合はamountを0にしてください。'}
+        ]
+      }]
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    loading.style.display='none';
+    var text=data.content&&data.content[0]&&data.content[0].text||'';
+    var clean=text.replace(/```json|```/g,'').trim();
+    try{
+      var result=JSON.parse(clean);
+      showReceiptModal(result.name||'', result.amount||0);
+    }catch(e){
+      alert('読み取りに失敗しました。手動で入力してください。');
+    }
+  })
+  .catch(function(){
+    loading.style.display='none';
+    alert('通信エラーが発生しました。');
+  });
+}
+
+function showReceiptModal(name, amount){
+  document.getElementById('receipt-name').value=name;
+  document.getElementById('receipt-amount').value=amount||'';
+  document.getElementById('receipt-cat').value='other';
+  var m=document.getElementById('receipt-modal-overlay');
+  m.style.display='flex';
+}
+
+function closeReceiptModal(){
+  document.getElementById('receipt-modal-overlay').style.display='none';
+}
+
+function addFromReceipt(){
+  var name=document.getElementById('receipt-name').value.trim();
+  var amount=parseInt(document.getElementById('receipt-amount').value);
+  var cat=document.getElementById('receipt-cat').value;
+  if(!name||!amount||amount<=0){alert('内容と金額を入力してください');return;}
+  var entries=getEntries(S.curY,S.curM);
+  entries.push({name:name,amount:amount,cat:cat,day:new Date().getDate(),id:Date.now()});
+  setEntries(entries);
+  closeReceiptModal();
+  save();render();
+}
 document.getElementById('f-amount').addEventListener('keydown',function(e){if(e.key==='Enter') addFixed();});
+['balance-rakuten','balance-yucho'].forEach(function(id){
+  var el=document.getElementById(id);
+  if(el) el.addEventListener('input',updateBalancePreview);
+});
 
 render();
 </script>
