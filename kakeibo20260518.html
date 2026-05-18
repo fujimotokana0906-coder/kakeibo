@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="家計簿">
+<meta name="theme-color" content="#F7F5F0">
+<title>家計簿</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%232D5A3D'/%3E%3Ctext x='90' y='115' font-size='90' text-anchor='middle' fill='white'%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;--surface:#FFF;--surface2:#F0EDE8;
+  --border:#E0DBD4;--text:#1A1714;--text-muted:#7A736C;--text-faint:#B0A89E;
+  --accent:#2D5A3D;--accent-light:#E8F2EB;--accent-text:#1A3D27;
+  --danger:#8B2A2A;--danger-light:#FAEAEA;
+  --warn:#7A5A1A;--warn-light:#FDF5E0;
+  --blue:#1A3A5C;--blue-light:#E8F0FA;
+  --purple:#3D2A5C;--purple-light:#EEE8FA;
+  --mono:'DM Mono',monospace;--sans:'Zen Kaku Gothic New',sans-serif;
+  --r:10px;--rl:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)
+}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;-webkit-text-size-adjust:100%;padding-top:var(--safe-t)}
+.app{max-width:900px;margin:0 auto;padding:0 14px;padding-bottom:calc(80px + var(--safe-b))}
+header{padding:18px 0 12px;border-bottom:1px solid var(--border);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+h1{font-size:19px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:baseline;gap:8px}
+.mono-sm{font-size:12px;font-weight:400;color:var(--text-muted);font-family:var(--mono)}
+.gear-btn{background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-muted);padding:4px;-webkit-tap-highlight-color:transparent;line-height:1}
+.month-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.nav-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:40px;height:40px;cursor:pointer;font-size:18px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;flex-shrink:0}
+.nav-btn:active{background:var(--surface2)}
+.month-label{font-family:var(--mono);font-size:17px;font-weight:500;min-width:90px;text-align:center}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid;font-family:var(--mono)}
+.badge-bonus{background:var(--warn-light);color:var(--warn);border-color:#E8D48A}
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+@media(min-width:480px){.summary-grid{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:3px}
+.stat-value{font-family:var(--mono);font-size:16px;font-weight:500;line-height:1.2}
+.positive{color:var(--accent)}.negative{color:var(--danger)}.neutral{color:var(--text)}.blue{color:var(--blue)}
+.stat-sub{font-size:10px;color:var(--text-faint);margin-top:2px;font-family:var(--mono)}
+.tabs{display:flex;gap:3px;margin-bottom:12px;background:var(--surface2);padding:4px;border-radius:var(--r);width:100%}
+.tab{flex:1;padding:7px 2px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text-muted);font-family:var(--sans);text-align:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.add-row{display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-bottom:6px}
+.add-row2{display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:8px}
+.row3{display:grid;grid-template-columns:2fr 1fr 90px;gap:6px;margin-bottom:6px}
+input[type=text],input[type=number],select{font-family:var(--sans);font-size:16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:9px 10px;color:var(--text);outline:none;width:100%;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent);background:var(--surface)}
+select{-webkit-appearance:auto;appearance:auto}
+.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:9px 14px;border-radius:var(--r);cursor:pointer;border:1px solid;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-primary:active{background:var(--accent-text)}
+.btn-ghost{background:var(--surface);color:var(--text-muted);border-color:var(--border)}
+.btn-sm{font-size:12px;padding:6px 10px}
+.btn-danger{background:var(--danger-light);color:var(--danger);border-color:#E0C0C0}
+.divider{height:1px;background:var(--border);margin:10px 0}
+.entry-list{display:flex;flex-direction:column;gap:5px}
+.entry-item{display:flex;align-items:center;gap:6px;padding:9px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.ecat{font-size:10px;padding:2px 6px;border-radius:20px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.cat-snack{background:#FDF5E0;color:#7A5A1A;border-color:#E8D48A}
+.cat-daily{background:#F0F5FF;color:#2A4A8A;border-color:#B0C8F0}
+.cat-clothes{background:var(--purple-light);color:var(--purple);border-color:#BDB0DC}
+.cat-beauty{background:#FFF0F8;color:#8A2A6A;border-color:#E8A0D0}
+.cat-hobby{background:var(--accent-light);color:var(--accent-text);border-color:#9ECBAF}
+.cat-social{background:#FFF4EC;color:#8A4A1A;border-color:#E8C090}
+.cat-travel{background:var(--blue-light);color:var(--blue);border-color:#A8C4E8}
+.cat-utility{background:#FFF0F0;color:#8B2A2A;border-color:#E8B0B0}
+.cat-other{background:var(--surface2);color:var(--text-muted);border-color:var(--border)}
+.ename{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eamt{font-family:var(--mono);font-size:13px;flex-shrink:0}
+.edate{font-family:var(--mono);font-size:11px;color:var(--text-faint);flex-shrink:0}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:20px;padding:0 2px;line-height:1;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.empty-state{text-align:center;padding:22px;color:var(--text-faint);font-size:13px}
+.total-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:var(--r);margin-bottom:8px;font-size:13px}
+.total-bar .tlabel{color:var(--text-muted)}
+.total-bar .tamount{font-family:var(--mono);font-weight:500;color:var(--danger)}
+.fixed-list{display:flex;flex-direction:column;gap:5px}
+.fixed-item{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--surface2);border-radius:var(--r);border:1px solid transparent}
+.fixed-item.dimmed{opacity:.35;text-decoration:line-through}
+.ftag{font-size:10px;padding:2px 6px;border-radius:20px;border:1px solid;flex-shrink:0}
+.tag-fixed{background:var(--blue-light);color:var(--blue);border-color:#A8C4E8}
+.tag-invest{background:var(--accent-light);color:var(--accent-text);border-color:#9ECBAF}
+.tag-repay{background:var(--purple-light);color:var(--purple);border-color:#BDB0DC}
+.tag-utility{background:#FFF0F0;color:#8B2A2A;border-color:#E8B0B0}
+.fname{flex:1;font-size:13px}
+.famt{font-family:var(--mono);font-size:13px;color:var(--text-muted)}
+.pbar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:5px}
+.pfill{height:100%;border-radius:3px;transition:width .4s}
+.fill-ok{background:var(--accent)}.fill-warn{background:#C8A020}.fill-over{background:var(--danger)}
+.plabel{display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:3px;font-family:var(--mono)}
+.utility-box{background:#FFF0F0;border:1px solid #E8B0B0;border-radius:var(--r);padding:12px;margin-top:10px}
+.util-row{display:grid;grid-template-columns:72px 1fr auto;gap:6px;align-items:center;margin-bottom:6px}
+.util-label{font-size:13px;color:var(--text-muted)}
+.section-sub{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px}
+.step-circle{background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+/* カレンダー */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:8px}
+.cal-head{text-align:center;font-size:11px;color:var(--text-faint);padding:4px 0;font-family:var(--mono)}
+.cal-head.sun{color:#C04040}.cal-head.sat{color:#2060C0}
+.cal-cell{min-height:62px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+.cal-cell:active{border-color:var(--accent)}
+.cal-cell.today{border-color:var(--accent);border-width:2px}
+.cal-cell.other-month{background:var(--surface2);opacity:.5}
+.cal-cell.has-income{background:#F0FAF5}
+.cal-day{font-size:11px;font-weight:500;font-family:var(--mono);line-height:1}
+.cal-day.sun{color:#C04040}.cal-day.sat{color:#2060C0}
+.cal-income{font-size:8px;color:var(--accent);font-family:var(--mono);margin-top:2px;line-height:1.3}
+.cal-expense{font-size:8px;color:var(--danger);font-family:var(--mono);margin-top:1px;line-height:1.3}
+.cal-fixed-dot{width:4px;height:4px;border-radius:50%;background:var(--blue);display:inline-block;margin-top:2px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;padding:20px;width:100%;max-width:480px;max-height:70vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-faint);-webkit-tap-highlight-color:transparent}
+.chart-wrap{position:relative;width:100%;height:200px}
+/* 編集モーダル */
+.edit-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.edit-modal{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;padding:20px;width:100%;max-width:480px}
+.edit-modal-title{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+/* 設定パネル（サイドドロワー） */
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;justify-content:flex-end}
+.settings-panel{background:var(--surface);width:min(320px,90vw);height:100%;overflow-y:auto;padding:20px 16px;padding-top:calc(20px + var(--safe-t));padding-bottom:calc(20px + var(--safe-b))}
+.settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.settings-title{font-size:16px;font-weight:700}
+.settings-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);-webkit-tap-highlight-color:transparent}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>家計簿 <span class="mono-sm" id="hdr-year">2026</span></h1>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="badge badge-bonus" id="bonus-badge" style="display:none">ボーナス月</span>
+    <button class="gear-btn" onclick="openSettings()" aria-label="設定">⚙️</button>
+  </div>
+</header>
+
+<div class="month-nav">
+  <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+  <span class="month-label" id="month-label"></span>
+  <button class="nav-btn" onclick="changeMonth(1)">›</button>
+</div>
+
+<div class="summary-grid">
+  <div class="stat"><div class="stat-label">収入</div><div class="stat-value neutral" id="s-income">—</div><div class="stat-sub" id="s-income-sub"></div></div>
+  <div class="stat"><div class="stat-label">固定費合計</div><div class="stat-value negative" id="s-fixed">—</div></div>
+  <div class="stat"><div class="stat-label">変動費合計</div><div class="stat-value negative" id="s-var">—</div></div>
+  <div class="stat"><div class="stat-label">今月収支</div><div class="stat-value" id="s-bal">—</div><div class="stat-sub" id="s-debt-sub"></div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw(event,'variable')">変動費</button>
+  <button class="tab" onclick="sw(event,'fixed')">固定費</button>
+  <button class="tab" onclick="sw(event,'calendar')">カレンダー</button>
+  <button class="tab" onclick="sw(event,'graph')">グラフ</button>
+</div>
+
+<!-- 変動費 -->
+<div id="panel-variable" class="panel active">
+  <div class="card">
+    <div class="card-title">変動費を追加</div>
+    <div class="add-row">
+      <input type="text" id="v-name" placeholder="内容（例：コンビニ）" autocomplete="off">
+      <input type="number" id="v-amount" placeholder="金額" min="0" inputmode="numeric">
+    </div>
+    <div class="add-row2">
+      <select id="v-cat">
+        <option value="snack">軽食</option>
+        <option value="daily">日用品</option>
+        <option value="clothes">洋服</option>
+        <option value="beauty">美容</option>
+        <option value="hobby">趣味・娯楽</option>
+        <option value="social">交遊費</option>
+        <option value="travel">旅行</option>
+        <option value="other">その他</option>
+      </select>
+      <button class="btn btn-primary" onclick="addEntry()">追加</button>
+    </div>
+    <div class="divider"></div>
+    <div class="total-bar">
+      <span class="tlabel">変動費合計</span>
+      <span class="tamount" id="v-total-lbl">0円</span>
+    </div>
+    <div class="pbar"><div class="pfill" id="v-pfill" style="width:0%"></div></div>
+    <div class="plabel"><span>予算 60,000円</span><span id="v-ppct">0%</span></div>
+    <div style="height:10px"></div>
+    <div class="entry-list" id="entry-list"><div class="empty-state">📋 まだ記録がありません</div></div>
+  </div>
+</div>
+
+<!-- 固定費 -->
+<div id="panel-fixed" class="panel">
+  <div class="card">
+    <div class="card-title">毎月の固定費・積立</div>
+    <div class="total-bar">
+      <span class="tlabel">固定費合計（今月）</span>
+      <span class="tamount" id="f-total-lbl">0円</span>
+    </div>
+    <div class="fixed-list" id="fixed-list"></div>
+    <div class="utility-box">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8B2A2A;margin-bottom:8px;display:flex;justify-content:space-between">
+        <span>水道光熱費（実費登録）</span>
+        <span id="utility-status" style="font-weight:400;font-size:11px"></span>
+      </div>
+      <div class="util-row"><span class="util-label">水道代</span><input type="number" id="u-water" placeholder="実費" min="0" inputmode="numeric"><span style="font-size:12px;color:var(--text-faint)">円</span></div>
+      <div class="util-row"><span class="util-label">ガス代</span><input type="number" id="u-gas" placeholder="実費" min="0" inputmode="numeric"><span style="font-size:12px;color:var(--text-faint)">円</span></div>
+      <div class="util-row"><span class="util-label">電気代</span><input type="number" id="u-elec" placeholder="実費" min="0" inputmode="numeric"><span style="font-size:12px;color:var(--text-faint)">円</span></div>
+      <button class="btn btn-danger btn-sm" style="width:100%;margin-top:4px" onclick="saveUtility()">実費を登録（概算15,000円と置き換え）</button>
+      <div id="utility-registered" style="display:none;margin-top:6px;font-size:12px;color:#8B2A2A;font-family:var(--mono)"></div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="card-title" style="margin-bottom:6px">項目を追加</div>
+      <div class="row3">
+        <input type="text" id="f-name" placeholder="項目名" autocomplete="off">
+        <input type="number" id="f-amount" placeholder="金額" min="0" inputmode="numeric">
+        <select id="f-type"><option value="fixed">固定費</option><option value="invest">積立</option><option value="repay">返済</option><option value="utility">光熱費</option></select>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="addFixed()">追加</button>
+    </div>
+    <div class="divider"></div>
+    <div style="margin-bottom:10px">
+      <div class="section-sub">NISA年間進捗</div>
+      <div class="pbar" style="height:7px"><div class="pfill fill-ok" id="nisa-fill" style="width:0%"></div></div>
+      <div class="plabel"><span id="nisa-used">0円</span><span>年間上限 1,200,000円</span></div>
+    </div>
+    <div>
+      <div class="section-sub">親への返済残高</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--purple)" id="debt-display">—</span>
+        <span style="font-size:11px;color:var(--text-faint)">/ 661,000円</span>
+      </div>
+      <div class="pbar" style="margin-top:4px"><div class="pfill" id="debt-fill" style="width:100%;background:var(--purple)"></div></div>
+      <div class="plabel"><span id="debt-pct"></span><span id="debt-months"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- カレンダー -->
+<div id="panel-calendar" class="panel">
+  <div class="card">
+    <div class="card-title" id="cal-title">カレンダー</div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;font-size:11px;color:var(--text-faint)">
+      <span style="display:flex;align-items:center;gap:4px"><span style="color:var(--accent)">+</span>収入</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="color:var(--danger)">−</span>変動費支出</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="cal-fixed-dot"></span>固定費あり</span>
+    </div>
+  </div>
+</div>
+
+<!-- グラフ -->
+<div id="panel-graph" class="panel">
+  <div class="card">
+    <div class="card-title">資産合計の推移</div>
+    <div class="chart-wrap"><canvas id="chart-assets"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">月別支出の推移</div>
+    <div class="chart-wrap"><canvas id="chart-expense"></canvas></div>
+  </div>
+</div>
+</div>
+
+<!-- 変動費編集モーダル -->
+<div id="edit-modal-overlay" class="edit-modal-overlay" style="display:none" onclick="closeEditModal(event)">
+  <div class="edit-modal">
+    <div class="edit-modal-title">
+      <span>変動費を編集</span>
+      <button class="modal-close" onclick="closeEditModal()">×</button>
+    </div>
+    <div class="add-row" style="margin-bottom:6px">
+      <input type="text" id="edit-name" placeholder="内容" autocomplete="off">
+      <input type="number" id="edit-amount" placeholder="金額" min="0" inputmode="numeric">
+    </div>
+    <div style="margin-bottom:14px">
+      <select id="edit-cat" style="width:100%">
+        <option value="snack">軽食</option>
+        <option value="daily">日用品</option>
+        <option value="clothes">洋服</option>
+        <option value="beauty">美容</option>
+        <option value="hobby">趣味・娯楽</option>
+        <option value="social">交遊費</option>
+        <option value="travel">旅行</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btn-ghost" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- カレンダー詳細モーダル -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-title-text"></span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- 設定ドロワー -->
+<div id="settings-overlay" class="settings-overlay" style="display:none" onclick="closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <span class="settings-title">設定</span>
+      <button class="settings-close" onclick="closeSettings()">×</button>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div class="card-title">給料の設定（毎月10日に更新）</div>
+      <div style="display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--accent-text);flex-shrink:0">今月の給料</span>
+        <input type="number" id="salary-input" inputmode="numeric" placeholder="200000" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #9ECBAF;border-radius:0;padding:2px 4px;width:100px;color:var(--accent-text)">
+        <span style="font-size:12px;color:var(--accent-text)">円</span>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveSalary()">この月の給料を保存</button>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:6px">未設定の月は基本給 200,000円で計算</div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div class="card-title">iPhoneホーム画面に追加</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.9;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px;align-items:flex-start"><span class="step-circle">1</span><span>Safariで開く</span></div>
+        <div style="display:flex;gap:8px;align-items:flex-start"><span class="step-circle">2</span><span>共有ボタン（↑）をタップ</span></div>
+        <div style="display:flex;gap:8px;align-items:flex-start"><span class="step-circle">3</span><span>「ホーム画面に追加」→「追加」</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-title" style="color:var(--danger)">データ管理</div>
+      <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:#E0C0C0" onclick="resetData()">すべてのデータを初期化する</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── 過去データ（インポート済み）──
+var IMPORTED_DATA = null;
+try {
+  IMPORTED_DATA = JSON.parse('{"entries":{"2025-05":[{"name":"USB","amount":1440,"cat":"daily","day":1,"id":202505010000},{"name":"分割支払","amount":7270,"cat":"other","day":1,"id":202505010001},{"name":"セブン","amount":447,"cat":"snack","day":1,"id":202505010002},{"name":"パン屋","amount":717,"cat":"snack","day":1,"id":202505010003},{"name":"化粧水","amount":999,"cat":"beauty","day":2,"id":202505020004},{"name":"DAISO","amount":440,"cat":"daily","day":2,"id":202505020005},{"name":"化粧水 他","amount":2335,"cat":"beauty","day":6,"id":202505060006},{"name":"nimocaチャージ","amount":3000,"cat":"other","day":6,"id":202505060007},{"name":"食事","amount":1850,"cat":"social","day":6,"id":202505060008},{"name":"セブン","amount":654,"cat":"snack","day":7,"id":202505070009},{"name":"DAISO","amount":220,"cat":"daily","day":8,"id":202505080010},{"name":"パン屋","amount":492,"cat":"snack","day":8,"id":202505080011},{"name":"無印良品","amount":990,"cat":"daily","day":8,"id":202505080012},{"name":"ジャンプショップ","amount":3421,"cat":"hobby","day":8,"id":202505080013},{"name":"化粧水","amount":1880,"cat":"beauty","day":10,"id":202505100014},{"name":"諒平へ","amount":33500,"cat":"travel","day":10,"id":202505100015},{"name":"惇平へ","amount":25000,"cat":"travel","day":10,"id":202505100016},{"name":"ローソン","amount":298,"cat":"snack","day":12,"id":202505120017},{"name":"DAISO","amount":988,"cat":"daily","day":13,"id":202505130018},{"name":"ローソン","amount":171,"cat":"snack","day":13,"id":202505130019},{"name":"クレンジング","amount":2420,"cat":"beauty","day":14,"id":202505140020},{"name":"DAISO","amount":165,"cat":"daily","day":14,"id":202505140021},{"name":"パン屋","amount":582,"cat":"snack","day":14,"id":202505140022},{"name":"GU","amount":4980,"cat":"clothes","day":14,"id":202505140023},{"name":"セブン","amount":511,"cat":"snack","day":16,"id":202505160024},{"name":"セイムス","amount":2236,"cat":"beauty","day":16,"id":202505160025},{"name":"セブン","amount":537,"cat":"snack","day":19,"id":202505190026},{"name":"DAISO","amount":548,"cat":"daily","day":20,"id":202505200027},{"name":"天満屋","amount":2579,"cat":"beauty","day":20,"id":202505200028},{"name":"パン屋","amount":579,"cat":"snack","day":20,"id":202505200029},{"name":"替え歯ブラシ","amount":1760,"cat":"daily","day":20,"id":202505200030},{"name":"棚板","amount":2288,"cat":"hobby","day":21,"id":202505210031},{"name":"セイムス","amount":1782,"cat":"daily","day":22,"id":202505220032},{"name":"DAISO","amount":1098,"cat":"daily","day":23,"id":202505230033},{"name":"傘","amount":770,"cat":"daily","day":24,"id":202505240034},{"name":"借入返済","amount":4000,"cat":"other","day":26,"id":202505260035},{"name":"マック","amount":560,"cat":"snack","day":26,"id":202505260036},{"name":"トングう","amount":610,"cat":"snack","day":27,"id":202505270037},{"name":"切符","amount":240,"cat":"other","day":28,"id":202505280038},{"name":"ガシャポン","amount":400,"cat":"hobby","day":28,"id":202505280039},{"name":"ジャンプショップ","amount":5280,"cat":"hobby","day":28,"id":202505280040},{"name":"DAISO","amount":330,"cat":"daily","day":28,"id":202505280041},{"name":"無印良品","amount":908,"cat":"beauty","day":28,"id":202505280042},{"name":"ココカラファイン","amount":3392,"cat":"beauty","day":28,"id":202505280043},{"name":"スタバ","amount":510,"cat":"snack","day":28,"id":202505280044},{"name":"セブン","amount":505,"cat":"snack","day":29,"id":202505290045},{"name":"雑誌(Sportiva)","amount":2200,"cat":"hobby","day":29,"id":202505290046},{"name":"ミスド","amount":625,"cat":"snack","day":30,"id":202505300047},{"name":"nimocaチャージ","amount":2000,"cat":"other","day":30,"id":202505300048}],"2025-06":[{"name":"分割支払","amount":7270,"cat":"other","day":1,"id":202506010000},{"name":"セブン","amount":622,"cat":"snack","day":1,"id":202506010001},{"name":"セイムス","amount":440,"cat":"snack","day":2,"id":202506020002},{"name":"ローソン","amount":677,"cat":"snack","day":2,"id":202506020003},{"name":"Qoo10メガ割","amount":7270,"cat":"beauty","day":3,"id":202506030004},{"name":"眉毛サロン","amount":4950,"cat":"beauty","day":4,"id":202506040005},{"name":"まつパ","amount":2880,"cat":"beauty","day":4,"id":202506040006},{"name":"パン屋","amount":759,"cat":"snack","day":4,"id":202506040007},{"name":"3coins","amount":330,"cat":"daily","day":4,"id":202506040008},{"name":"ドンキ","amount":1038,"cat":"beauty","day":4,"id":202506040009},{"name":"本屋","amount":1367,"cat":"hobby","day":4,"id":202506040010},{"name":"セブン","amount":603,"cat":"snack","day":5,"id":202506050011},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":6,"id":202506060012},{"name":"DAISO","amount":110,"cat":"snack","day":6,"id":202506060013},{"name":"諒平へ","amount":22700,"cat":"travel","day":10,"id":202506100014},{"name":"ドラスト","amount":1427,"cat":"beauty","day":10,"id":202506100015},{"name":"セブン","amount":943,"cat":"snack","day":10,"id":202506100016},{"name":"nimocaチャージ","amount":3000,"cat":"other","day":10,"id":202506100017},{"name":"DAISO","amount":330,"cat":"daily","day":11,"id":202506110018},{"name":"nimocaチャージ","amount":2000,"cat":"other","day":11,"id":202506110019},{"name":"マック","amount":560,"cat":"snack","day":11,"id":202506110020},{"name":"セイムス","amount":4804,"cat":"daily","day":13,"id":202506130021},{"name":"セイムス","amount":416,"cat":"snack","day":15,"id":202506150022},{"name":"DAISO","amount":1215,"cat":"daily","day":17,"id":202506170023},{"name":"ハイキューガシャポン","amount":1860,"cat":"hobby","day":18,"id":202506180024},{"name":"ローソン","amount":397,"cat":"snack","day":19,"id":202506190025},{"name":"セイムス","amount":327,"cat":"snack","day":20,"id":202506200026},{"name":"皮膚科","amount":1480,"cat":"other","day":20,"id":202506200027},{"name":"セブン","amount":321,"cat":"snack","day":21,"id":202506210028},{"name":"セブン","amount":267,"cat":"snack","day":24,"id":202506240029},{"name":"セイムス","amount":2247,"cat":"daily","day":25,"id":202506250030},{"name":"新幹線代","amount":18800,"cat":"travel","day":25,"id":202506250031},{"name":"福岡 宿泊","amount":3822,"cat":"travel","day":25,"id":202506250032},{"name":"レイク","amount":12000,"cat":"other","day":26,"id":202506260033},{"name":"nimocaチャージ","amount":1000,"cat":"other","day":27,"id":202506270034},{"name":"美容院","amount":6500,"cat":"beauty","day":27,"id":202506270035},{"name":"ロフト","amount":3769,"cat":"beauty","day":27,"id":202506270036},{"name":"無印良品","amount":1429,"cat":"daily","day":27,"id":202506270037},{"name":"パン屋 アンティーク","amount":850,"cat":"snack","day":27,"id":202506270038},{"name":"ガチャポン","amount":700,"cat":"hobby","day":27,"id":202506270039},{"name":"セブン","amount":492,"cat":"snack","day":28,"id":202506280040},{"name":"セブン","amount":394,"cat":"snack","day":30,"id":202506300041}],"2025-07":[{"name":"ユニクロ","amount":4990,"cat":"clothes","day":1,"id":202507010000},{"name":"GU","amount":2790,"cat":"clothes","day":1,"id":202507010001},{"name":"セブン","amount":2192,"cat":"snack","day":1,"id":202507010002},{"name":"ケーキ","amount":311,"cat":"snack","day":1,"id":202507010003},{"name":"化粧品","amount":9526,"cat":"beauty","day":1,"id":202507010004},{"name":"ホテル","amount":200,"cat":"travel","day":1,"id":202507010005},{"name":"飲み","amount":6200,"cat":"social","day":1,"id":202507010006},{"name":"スタバ","amount":840,"cat":"snack","day":2,"id":202507020007},{"name":"ハイキュー展チケット","amount":2000,"cat":"hobby","day":2,"id":202507020008},{"name":"ガチャポン","amount":300,"cat":"hobby","day":2,"id":202507020009},{"name":"ハイキュー展グッズ","amount":3370,"cat":"hobby","day":2,"id":202507020010},{"name":"コインロッカー","amount":500,"cat":"travel","day":2,"id":202507020011},{"name":"電車","amount":330,"cat":"other","day":2,"id":202507020012},{"name":"ファミマ","amount":127,"cat":"snack","day":2,"id":202507020013},{"name":"ラーメン","amount":1120,"cat":"snack","day":2,"id":202507020014},{"name":"セイムス","amount":361,"cat":"daily","day":3,"id":202507030015},{"name":"まつパ, まゆげ","amount":9900,"cat":"beauty","day":3,"id":202507030016},{"name":"パン屋","amount":1025,"cat":"snack","day":4,"id":202507040017},{"name":"セイムス","amount":1857,"cat":"daily","day":6,"id":202507060018},{"name":"エブリイ","amount":620,"cat":"snack","day":7,"id":202507070019},{"name":"DAISO","amount":880,"cat":"daily","day":7,"id":202507070020},{"name":"セブン","amount":481,"cat":"snack","day":8,"id":202507080021},{"name":"ダイレックス","amount":1468,"cat":"daily","day":9,"id":202507090022},{"name":"DAISO","amount":880,"cat":"daily","day":9,"id":202507090023},{"name":"観葉植物の土","amount":709,"cat":"hobby","day":9,"id":202507090024},{"name":"セイムス","amount":580,"cat":"snack","day":13,"id":202507130025},{"name":"ローソン","amount":286,"cat":"snack","day":16,"id":202507160026},{"name":"nimocaチャージ","amount":10000,"cat":"other","day":16,"id":202507160027},{"name":"電車","amount":420,"cat":"other","day":17,"id":202507170028},{"name":"セブン","amount":721,"cat":"snack","day":19,"id":202507190029},{"name":"セイムス","amount":734,"cat":"snack","day":20,"id":202507200030},{"name":"DAISO","amount":770,"cat":"daily","day":21,"id":202507210031},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":21,"id":202507210032},{"name":"セイムス","amount":3528,"cat":"beauty","day":22,"id":202507220033},{"name":"パスポート","amount":10900,"cat":"travel","day":24,"id":202507240034},{"name":"セブン","amount":481,"cat":"snack","day":27,"id":202507270035},{"name":"ガシャポン","amount":800,"cat":"hobby","day":28,"id":202507280036},{"name":"まつパ","amount":3000,"cat":"beauty","day":28,"id":202507280037},{"name":"文房具","amount":715,"cat":"hobby","day":28,"id":202507280038},{"name":"マック","amount":740,"cat":"snack","day":28,"id":202507280039},{"name":"レイク","amount":4000,"cat":"other","day":28,"id":202507280040},{"name":"セイムス","amount":681,"cat":"snack","day":29,"id":202507290041}],"2025-08":[{"name":"セイムス","amount":3023,"cat":"daily","day":2,"id":202508020000},{"name":"nimocaチャージ","amount":4000,"cat":"other","day":3,"id":202508030001},{"name":"ご飯代","amount":3100,"cat":"social","day":3,"id":202508030002},{"name":"HANS","amount":1726,"cat":"beauty","day":3,"id":202508030003},{"name":"パン屋","amount":682,"cat":"snack","day":3,"id":202508030004},{"name":"ジャンプショップ","amount":7535,"cat":"hobby","day":3,"id":202508030005},{"name":"DAISO","amount":658,"cat":"daily","day":4,"id":202508040006},{"name":"無印良品","amount":850,"cat":"daily","day":7,"id":202508070007},{"name":"まゆげ","amount":4950,"cat":"beauty","day":7,"id":202508070008},{"name":"マック","amount":560,"cat":"snack","day":7,"id":202508070009},{"name":"GU","amount":7270,"cat":"clothes","day":7,"id":202508070010},{"name":"nimocaチャージ","amount":2000,"cat":"other","day":8,"id":202508080011},{"name":"韓国 旅費","amount":39365,"cat":"travel","day":10,"id":202508100012},{"name":"セイムス","amount":999,"cat":"beauty","day":10,"id":202508100013},{"name":"コンビニ","amount":440,"cat":"snack","day":13,"id":202508130014},{"name":"お昼ごはん","amount":1000,"cat":"snack","day":13,"id":202508130015},{"name":"カフェ","amount":2750,"cat":"social","day":15,"id":202508150016},{"name":"nimocaチャージ","amount":2000,"cat":"other","day":15,"id":202508150017},{"name":"セイムス","amount":1785,"cat":"daily","day":15,"id":202508150018},{"name":"ローソン","amount":406,"cat":"snack","day":17,"id":202508170019},{"name":"DAISO","amount":218,"cat":"daily","day":20,"id":202508200020},{"name":"ドラスト","amount":3813,"cat":"beauty","day":20,"id":202508200021},{"name":"ハイキューmagazine","amount":1540,"cat":"hobby","day":20,"id":202508200022},{"name":"セイムス","amount":326,"cat":"snack","day":24,"id":202508240023},{"name":"エブリイチャージ","amount":10000,"cat":"snack","day":26,"id":202508260024},{"name":"レイク(返済)","amount":4000,"cat":"other","day":26,"id":202508260025},{"name":"セイムス","amount":1637,"cat":"daily","day":29,"id":202508290026}],"2025-09":[{"name":"DCM","amount":1410,"cat":"daily","day":1,"id":202509010000},{"name":"セブン","amount":343,"cat":"snack","day":2,"id":202509020001},{"name":"nimocaチャージ","amount":1000,"cat":"other","day":3,"id":202509030002},{"name":"スタバ","amount":640,"cat":"snack","day":3,"id":202509030003},{"name":"ルーズリーフ","amount":451,"cat":"daily","day":3,"id":202509030004},{"name":"無印良品","amount":678,"cat":"daily","day":3,"id":202509030005},{"name":"セイムス","amount":618,"cat":"daily","day":3,"id":202509030006},{"name":"映画","amount":1300,"cat":"hobby","day":3,"id":202509030007},{"name":"DAISO","amount":218,"cat":"daily","day":4,"id":202509040008},{"name":"セブン","amount":1140,"cat":"snack","day":6,"id":202509060009},{"name":"WiFiレンタル","amount":2160,"cat":"travel","day":8,"id":202509080010},{"name":"Amazon","amount":7900,"cat":"daily","day":8,"id":202509080011},{"name":"ココカラファイン","amount":1738,"cat":"beauty","day":11,"id":202509110012},{"name":"無印良品","amount":1189,"cat":"daily","day":11,"id":202509110013},{"name":"GU","amount":2990,"cat":"clothes","day":11,"id":202509110014},{"name":"ユニクロ","amount":5980,"cat":"clothes","day":11,"id":202509110015},{"name":"DAISO","amount":1430,"cat":"daily","day":11,"id":202509110016},{"name":"マック","amount":690,"cat":"snack","day":11,"id":202509110017},{"name":"ガシャポン","amount":600,"cat":"hobby","day":11,"id":202509110018},{"name":"まつパ","amount":2600,"cat":"beauty","day":11,"id":202509110019},{"name":"まゆげ","amount":4950,"cat":"beauty","day":11,"id":202509110020},{"name":"セイムス","amount":1306,"cat":"daily","day":12,"id":202509120021},{"name":"セブン","amount":847,"cat":"daily","day":14,"id":202509140022},{"name":"WiFiレンタル","amount":2400,"cat":"hobby","day":15,"id":202509150023},{"name":"セブン","amount":427,"cat":"snack","day":15,"id":202509150024},{"name":"韓国","amount":553,"cat":"hobby","day":15,"id":202509150025},{"name":"韓国","amount":24456,"cat":"hobby","day":16,"id":202509160026},{"name":"韓国","amount":5427,"cat":"hobby","day":17,"id":202509170027},{"name":"セブン","amount":218,"cat":"snack","day":18,"id":202509180028},{"name":"ドラスト","amount":3425,"cat":"beauty","day":22,"id":202509220029},{"name":"コンビニ","amount":438,"cat":"snack","day":25,"id":202509250030},{"name":"レイク","amount":13000,"cat":"other","day":26,"id":202509260031},{"name":"ダイレックス","amount":1284,"cat":"daily","day":29,"id":202509290032},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":29,"id":202509290033}],"2025-10":[{"name":"DAISO","amount":220,"cat":"daily","day":1,"id":202510010000},{"name":"柔軟剤,コーヒー","amount":2035,"cat":"daily","day":1,"id":202510010001},{"name":"クレンジング,パック","amount":2000,"cat":"beauty","day":1,"id":202510010002},{"name":"市県民税(福岡)","amount":24300,"cat":"other","day":1,"id":202510010003},{"name":"車 購入費として","amount":10000,"cat":"other","day":1,"id":202510010004},{"name":"セイムス","amount":1092,"cat":"snack","day":4,"id":202510040005},{"name":"メルカリ","amount":200,"cat":"daily","day":6,"id":202510060006},{"name":"化粧水","amount":941,"cat":"beauty","day":6,"id":202510060007},{"name":"書籍","amount":700,"cat":"hobby","day":7,"id":202510070008},{"name":"temu","amount":3485,"cat":"clothes","day":7,"id":202510070009},{"name":"セブン","amount":586,"cat":"snack","day":9,"id":202510090010},{"name":"セイムス","amount":2544,"cat":"daily","day":10,"id":202510100011},{"name":"コンビニ","amount":652,"cat":"snack","day":12,"id":202510120012},{"name":"香り屋(そば)","amount":1400,"cat":"social","day":13,"id":202510130013},{"name":"ウォンツ","amount":2860,"cat":"beauty","day":13,"id":202510130014},{"name":"ガチャポン","amount":300,"cat":"hobby","day":14,"id":202510140015},{"name":"nimocaチャージ","amount":7000,"cat":"other","day":14,"id":202510140016},{"name":"セブン","amount":468,"cat":"snack","day":15,"id":202510150017},{"name":"福岡県民税","amount":22000,"cat":"other","day":17,"id":202510170018},{"name":"セイムス","amount":431,"cat":"snack","day":18,"id":202510180019},{"name":"パック","amount":770,"cat":"beauty","day":18,"id":202510180020},{"name":"セブン","amount":686,"cat":"snack","day":19,"id":202510190021},{"name":"眉マスカラ","amount":1200,"cat":"beauty","day":20,"id":202510200022},{"name":"セイムス","amount":800,"cat":"snack","day":20,"id":202510200023},{"name":"DAISO","amount":550,"cat":"daily","day":21,"id":202510210024},{"name":"ベランダほうき","amount":1479,"cat":"daily","day":21,"id":202510210025},{"name":"映画 もののけ姫","amount":2400,"cat":"hobby","day":24,"id":202510240026},{"name":"まゆげ","amount":4950,"cat":"beauty","day":24,"id":202510240027},{"name":"化粧水，洗顔","amount":3080,"cat":"beauty","day":24,"id":202510240028},{"name":"ユニクロ","amount":3990,"cat":"clothes","day":24,"id":202510240029},{"name":"無印良品","amount":2000,"cat":"daily","day":24,"id":202510240030},{"name":"自販機","amount":160,"cat":"snack","day":24,"id":202510240031},{"name":"レイク","amount":4000,"cat":"other","day":26,"id":202510260032},{"name":"セイムス","amount":426,"cat":"snack","day":30,"id":202510300033},{"name":"ジャンプショップ","amount":2580,"cat":"hobby","day":31,"id":202510310034},{"name":"nimocaチャージ","amount":1000,"cat":"other","day":31,"id":202510310035}],"2025-11":[{"name":"せぶん","amount":438,"cat":"snack","day":1,"id":202511010000},{"name":"車 購入費として","amount":30000,"cat":"other","day":1,"id":202511010001},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":3,"id":202511030002},{"name":"加湿器","amount":3440,"cat":"daily","day":3,"id":202511030003},{"name":"マツエク","amount":4500,"cat":"beauty","day":4,"id":202511040004},{"name":"ジェルクレンジング","amount":850,"cat":"beauty","day":4,"id":202511040005},{"name":"目薬,ボディクリーム","amount":1402,"cat":"beauty","day":4,"id":202511040006},{"name":"nimocaチャージ","amount":7000,"cat":"other","day":10,"id":202511100007},{"name":"セブン","amount":459,"cat":"snack","day":10,"id":202511100008},{"name":"スタバ","amount":510,"cat":"snack","day":10,"id":202511100009},{"name":"無印良品","amount":607,"cat":"daily","day":11,"id":202511110010},{"name":"セイムス","amount":600,"cat":"snack","day":15,"id":202511150011},{"name":"クッション, 食器","amount":2789,"cat":"daily","day":17,"id":202511170012},{"name":"ガシャポン","amount":500,"cat":"hobby","day":17,"id":202511170013},{"name":"まつパ","amount":4400,"cat":"beauty","day":18,"id":202511180014},{"name":"マスカラ","amount":1100,"cat":"beauty","day":18,"id":202511180015},{"name":"DAISO","amount":330,"cat":"daily","day":18,"id":202511180016},{"name":"日焼け止め, 化粧水","amount":4830,"cat":"beauty","day":18,"id":202511180017},{"name":"ジャンプショップ","amount":990,"cat":"snack","day":18,"id":202511180018},{"name":"Qoo10メガ割","amount":11473,"cat":"beauty","day":21,"id":202511210019},{"name":"セイムス","amount":659,"cat":"daily","day":22,"id":202511220020},{"name":"シャンプー等","amount":3711,"cat":"daily","day":24,"id":202511240021},{"name":"レイク","amount":18000,"cat":"other","day":26,"id":202511260022}],"2025-12":[{"name":"両親へ","amount":30000,"cat":"other","day":1,"id":202512010000},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":2,"id":202512020001},{"name":"DAISO","amount":660,"cat":"daily","day":2,"id":202512020002},{"name":"Qoo10メガ割","amount":9362,"cat":"daily","day":3,"id":202512030003},{"name":"セイムス","amount":2141,"cat":"daily","day":4,"id":202512040004},{"name":"編み物本","amount":1430,"cat":"hobby","day":8,"id":202512080005},{"name":"DAISO","amount":660,"cat":"hobby","day":8,"id":202512080006},{"name":"かぎ針など","amount":1265,"cat":"hobby","day":8,"id":202512080007},{"name":"まつげ","amount":5280,"cat":"beauty","day":9,"id":202512090008},{"name":"Suicaチャージ","amount":4000,"cat":"other","day":10,"id":202512100009},{"name":"Amazon","amount":6623,"cat":"daily","day":11,"id":202512110010},{"name":"美容院","amount":9800,"cat":"beauty","day":11,"id":202512110011},{"name":"セイムス","amount":2212,"cat":"daily","day":13,"id":202512130012},{"name":"セイムス","amount":2437,"cat":"daily","day":14,"id":202512140013},{"name":"インフル","amount":4070,"cat":"other","day":15,"id":202512150014},{"name":"セイムス","amount":784,"cat":"snack","day":15,"id":202512150015},{"name":"おとう誕プレ","amount":8500,"cat":"hobby","day":17,"id":202512170016},{"name":"セイムス","amount":1288,"cat":"daily","day":18,"id":202512180017},{"name":"セブン","amount":287,"cat":"snack","day":18,"id":202512180018},{"name":"DAISO","amount":330,"cat":"hobby","day":19,"id":202512190019},{"name":"セイムス","amount":1146,"cat":"other","day":20,"id":202512200020},{"name":"眼科","amount":2070,"cat":"other","day":22,"id":202512220021},{"name":"temu","amount":4510,"cat":"hobby","day":23,"id":202512230022},{"name":"ローソン","amount":894,"cat":"snack","day":25,"id":202512250023},{"name":"セブン","amount":904,"cat":"snack","day":25,"id":202512250024},{"name":"レイク","amount":12000,"cat":"other","day":26,"id":202512260025},{"name":"Amazon","amount":5090,"cat":"beauty","day":27,"id":202512270026},{"name":"トングウ","amount":780,"cat":"snack","day":28,"id":202512280027},{"name":"","amount":5100,"cat":"clothes","day":29,"id":202512290028},{"name":"チャージ","amount":3000,"cat":"other","day":29,"id":202512290029},{"name":"クラス会","amount":5100,"cat":"social","day":29,"id":202512290030},{"name":"セリア","amount":770,"cat":"hobby","day":29,"id":202512290031},{"name":"ユザワヤ","amount":868,"cat":"hobby","day":29,"id":202512290032}],"2026-01":[{"name":"両親へ","amount":30000,"cat":"other","day":1,"id":202601010000},{"name":"チャージ","amount":8000,"cat":"other","day":2,"id":202601020001},{"name":"お年玉","amount":8000,"cat":"other","day":2,"id":202601020002},{"name":"セイムス(ヘアミルク)","amount":1650,"cat":"beauty","day":4,"id":202601040003},{"name":"セイムス","amount":1405,"cat":"snack","day":4,"id":202601040004},{"name":"ニトリ","amount":629,"cat":"daily","day":5,"id":202601050005},{"name":"ありがとう商品券","amount":10000,"cat":"snack","day":7,"id":202601070006},{"name":"セイムス","amount":642,"cat":"daily","day":12,"id":202601120007},{"name":"棚, 化粧水など","amount":11400,"cat":"daily","day":15,"id":202601150008},{"name":"おかあ誕プレ","amount":4000,"cat":"hobby","day":20,"id":202601200009},{"name":"セブン","amount":112,"cat":"snack","day":22,"id":202601220010},{"name":"まつパ","amount":5100,"cat":"beauty","day":23,"id":202601230011},{"name":"ゴミ袋","amount":220,"cat":"daily","day":23,"id":202601230012},{"name":"ガチャポン","amount":1000,"cat":"hobby","day":23,"id":202601230013},{"name":"書籍","amount":1001,"cat":"hobby","day":23,"id":202601230014},{"name":"あったかグッズ","amount":3600,"cat":"daily","day":23,"id":202601230015},{"name":"セイムス","amount":454,"cat":"daily","day":24,"id":202601240016},{"name":"ローソン","amount":744,"cat":"snack","day":25,"id":202601250017},{"name":"切手代","amount":140,"cat":"other","day":26,"id":202601260018},{"name":"ガチャポン","amount":900,"cat":"hobby","day":26,"id":202601260019},{"name":"漫画","amount":946,"cat":"hobby","day":26,"id":202601260020},{"name":"メッセージカード","amount":693,"cat":"social","day":26,"id":202601260021},{"name":"DAISO","amount":990,"cat":"hobby","day":30,"id":202601300022}],"2026-02":[{"name":"車保険","amount":8000,"cat":"other","day":1,"id":202602010000},{"name":"パン屋","amount":1943,"cat":"snack","day":1,"id":202602010001},{"name":"印鑑証明","amount":600,"cat":"other","day":2,"id":202602020002},{"name":"福岡市住民税","amount":22000,"cat":"other","day":2,"id":202602020003},{"name":"セイムス","amount":625,"cat":"daily","day":3,"id":202602030004},{"name":"車庫証明","amount":2260,"cat":"other","day":4,"id":202602040005},{"name":"セブン","amount":378,"cat":"snack","day":7,"id":202602070006},{"name":"ローソン","amount":823,"cat":"snack","day":9,"id":202602090007},{"name":"CX-3 譲受","amount":100000,"cat":"other","day":10,"id":202602100008},{"name":"セブン","amount":438,"cat":"snack","day":10,"id":202602100009},{"name":"ユニクロ","amount":3990,"cat":"clothes","day":11,"id":202602110010},{"name":"チョコレート","amount":1188,"cat":"social","day":11,"id":202602110011},{"name":"パン屋","amount":1393,"cat":"snack","day":11,"id":202602110012},{"name":"無印良品","amount":2170,"cat":"hobby","day":11,"id":202602110013},{"name":"3COINS","amount":330,"cat":"clothes","day":11,"id":202602110014},{"name":"アニメイト","amount":2626,"cat":"hobby","day":11,"id":202602110015},{"name":"セブン","amount":920,"cat":"snack","day":14,"id":202602140016},{"name":"DAISO","amount":1650,"cat":"hobby","day":15,"id":202602150017},{"name":"ニトリ","amount":1590,"cat":"daily","day":15,"id":202602150018},{"name":"無印良品","amount":7930,"cat":"hobby","day":15,"id":202602150019},{"name":"ガソリン","amount":3565,"cat":"other","day":15,"id":202602150020},{"name":"住民票","amount":300,"cat":"other","day":16,"id":202602160021},{"name":"すき家","amount":660,"cat":"snack","day":16,"id":202602160022},{"name":"ニトリ","amount":3990,"cat":"daily","day":16,"id":202602160023},{"name":"名義変更","amount":2480,"cat":"other","day":16,"id":202602160024},{"name":"パン屋(インダストリー)","amount":1330,"cat":"snack","day":18,"id":202602180025},{"name":"マツキヨ","amount":6360,"cat":"beauty","day":22,"id":202602220026},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":22,"id":202602220027},{"name":"マック","amount":560,"cat":"snack","day":22,"id":202602220028},{"name":"セイムス","amount":2239,"cat":"snack","day":23,"id":202602230029},{"name":"駐車場, 保険料","amount":7000,"cat":"other","day":26,"id":202602260030},{"name":"セイムス","amount":1917,"cat":"daily","day":28,"id":202602280031}],"2026-03":[{"name":"セブン","amount":177,"cat":"snack","day":1,"id":202603010000},{"name":"高速","amount":1790,"cat":"other","day":1,"id":202603010001},{"name":"パン屋","amount":1425,"cat":"snack","day":1,"id":202603010002},{"name":"3coins","amount":1870,"cat":"daily","day":2,"id":202603020003},{"name":"高速","amount":3400,"cat":"other","day":2,"id":202603020004},{"name":"IKEA","amount":396,"cat":"daily","day":2,"id":202603020005},{"name":"無印良品","amount":2440,"cat":"clothes","day":2,"id":202603020006},{"name":"キーケース","amount":455,"cat":"daily","day":4,"id":202603040007},{"name":"福岡ホテル代","amount":15858,"cat":"travel","day":6,"id":202603060008},{"name":"新幹線代","amount":18200,"cat":"travel","day":6,"id":202603060009},{"name":"かほとディナー","amount":10945,"cat":"social","day":7,"id":202603070010},{"name":"ホワイトグラス","amount":1870,"cat":"social","day":7,"id":202603070011},{"name":"クレンジング,パック","amount":1870,"cat":"beauty","day":7,"id":202603070012},{"name":"おみやげ","amount":2399,"cat":"travel","day":7,"id":202603070013},{"name":"パン屋","amount":1695,"cat":"snack","day":8,"id":202603080014},{"name":"アニメイト","amount":1947,"cat":"hobby","day":8,"id":202603080015},{"name":"パンどろぼうPOPUP","amount":1693,"cat":"hobby","day":8,"id":202603080016},{"name":"ユニクロ","amount":2490,"cat":"clothes","day":8,"id":202603080017},{"name":"ファミマ","amount":182,"cat":"snack","day":8,"id":202603080018},{"name":"Zoo巡り","amount":10000,"cat":"social","day":8,"id":202603080019},{"name":"ラーメン","amount":1130,"cat":"snack","day":9,"id":202603090020},{"name":"ロッカー","amount":500,"cat":"travel","day":9,"id":202603090021},{"name":"駐車場","amount":700,"cat":"other","day":9,"id":202603090022},{"name":"お土産","amount":4354,"cat":"travel","day":9,"id":202603090023},{"name":"掛け時計","amount":2860,"cat":"daily","day":9,"id":202603090024},{"name":"SHEIN","amount":1742,"cat":"daily","day":9,"id":202603090025},{"name":"standard products","amount":1870,"cat":"daily","day":9,"id":202603090026},{"name":"ローソン","amount":407,"cat":"snack","day":9,"id":202603090027},{"name":"セイムス","amount":1145,"cat":"snack","day":11,"id":202603110028},{"name":"アニメイト","amount":7500,"cat":"hobby","day":11,"id":202603110029},{"name":"ダイソー","amount":880,"cat":"daily","day":11,"id":202603110030},{"name":"アベイル","amount":2100,"cat":"clothes","day":11,"id":202603110031},{"name":"セイムス","amount":1541,"cat":"beauty","day":14,"id":202603140032},{"name":"パン屋 bonbon","amount":2268,"cat":"snack","day":15,"id":202603150033},{"name":"ダイソー","amount":2090,"cat":"daily","day":15,"id":202603150034},{"name":"洗車","amount":600,"cat":"other","day":18,"id":202603180035},{"name":"給油","amount":3000,"cat":"other","day":18,"id":202603180036},{"name":"無印良品","amount":2779,"cat":"daily","day":18,"id":202603180037},{"name":"本屋","amount":3270,"cat":"hobby","day":18,"id":202603180038},{"name":"ハンドクリーム, パッチ","amount":2285,"cat":"beauty","day":18,"id":202603180039},{"name":"植物","amount":2400,"cat":"hobby","day":22,"id":202603220040},{"name":"パン屋","amount":1328,"cat":"snack","day":22,"id":202603220041},{"name":"DCM","amount":599,"cat":"daily","day":22,"id":202603220042},{"name":"セリア","amount":550,"cat":"daily","day":22,"id":202603220043},{"name":"DAISO","amount":990,"cat":"daily","day":23,"id":202603230044},{"name":"DAISO","amount":550,"cat":"hobby","day":23,"id":202603230045},{"name":"化粧水","amount":962,"cat":"beauty","day":23,"id":202603230046},{"name":"無印良品","amount":3231,"cat":"clothes","day":23,"id":202603230047},{"name":"荷物転送費","amount":940,"cat":"other","day":25,"id":202603250048},{"name":"セイムス","amount":3553,"cat":"daily","day":27,"id":202603270049}],"2026-04":[{"name":"セブン","amount":728,"cat":"snack","day":3,"id":202604030000},{"name":"マック","amount":660,"cat":"snack","day":4,"id":202604040001},{"name":"マツパ","amount":4980,"cat":"beauty","day":4,"id":202604040002},{"name":"ロフト","amount":5753,"cat":"beauty","day":4,"id":202604040003},{"name":"ゴンチャ","amount":630,"cat":"snack","day":4,"id":202604040004},{"name":"お花","amount":710,"cat":"hobby","day":5,"id":202604050005},{"name":"ザグザグ","amount":5948,"cat":"beauty","day":6,"id":202604060006},{"name":"セブン","amount":427,"cat":"snack","day":8,"id":202604080007},{"name":"駐車場","amount":600,"cat":"other","day":11,"id":202604110008},{"name":"お好み焼き","amount":1271,"cat":"social","day":11,"id":202604110009},{"name":"ハイキュープラザ","amount":10000,"cat":"beauty","day":11,"id":202604110010},{"name":"化粧品","amount":5364,"cat":"beauty","day":11,"id":202604110011},{"name":"ハイキュープラザ","amount":1540,"cat":"hobby","day":12,"id":202604120012},{"name":"漫画","amount":1540,"cat":"hobby","day":12,"id":202604120013},{"name":"カインズ","amount":2039,"cat":"daily","day":13,"id":202604130014},{"name":"鉢","amount":1540,"cat":"hobby","day":13,"id":202604130015},{"name":"セイムス","amount":1531,"cat":"daily","day":14,"id":202604140016},{"name":"セブン","amount":872,"cat":"snack","day":17,"id":202604170017},{"name":"漫画, 本","amount":3213,"cat":"hobby","day":19,"id":202604190018},{"name":"DAISO","amount":110,"cat":"daily","day":19,"id":202604190019},{"name":"マック","amount":660,"cat":"snack","day":19,"id":202604190020},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":19,"id":202604190021},{"name":"セイムス","amount":2071,"cat":"daily","day":20,"id":202604200022},{"name":"出産祝い","amount":15000,"cat":"other","day":21,"id":202604210023},{"name":"母の日","amount":1700,"cat":"other","day":21,"id":202604210024},{"name":"貯金","amount":30000,"cat":"other","day":23,"id":202604230025},{"name":"ガチャガチャ","amount":400,"cat":"hobby","day":26,"id":202604260026},{"name":"ガソリン代","amount":4385,"cat":"other","day":26,"id":202604260027},{"name":"ニトリ","amount":646,"cat":"daily","day":26,"id":202604260028},{"name":"本","amount":1496,"cat":"hobby","day":26,"id":202604260029},{"name":"オイル交換","amount":8160,"cat":"other","day":26,"id":202604260030},{"name":"コスモス","amount":3326,"cat":"daily","day":27,"id":202604270031}],"2026-05":[{"name":"セブン","amount":840,"cat":"snack","day":1,"id":202605010000},{"name":"パン","amount":2160,"cat":"snack","day":2,"id":202605020001},{"name":"漫画","amount":3872,"cat":"hobby","day":3,"id":202605030002},{"name":"駐車場","amount":1200,"cat":"other","day":4,"id":202605040003},{"name":"セブン","amount":248,"cat":"snack","day":4,"id":202605040004},{"name":"ランチ","amount":2580,"cat":"social","day":4,"id":202605040005},{"name":"Qoo10","amount":7966,"cat":"beauty","day":9,"id":202605090006},{"name":"パン","amount":2170,"cat":"snack","day":9,"id":202605090007},{"name":"ニトリ","amount":5926,"cat":"daily","day":9,"id":202605090008},{"name":"しまむら","amount":4626,"cat":"clothes","day":9,"id":202605090009},{"name":"コンビニ","amount":959,"cat":"snack","day":11,"id":202605110010},{"name":"無印","amount":4820,"cat":"daily","day":11,"id":202605110011},{"name":"漫画","amount":880,"cat":"hobby","day":11,"id":202605110012},{"name":"まつパ","amount":4880,"cat":"snack","day":11,"id":202605110013},{"name":"セイムス","amount":5688,"cat":"daily","day":16,"id":202605160014},{"name":"エブリカチャージ","amount":10000,"cat":"snack","day":16,"id":202605160015}]},"salaries":{"2025-05":193113,"2025-06":199668,"2025-07":195015,"2025-08":178413,"2025-09":200742,"2025-10":196304,"2025-11":200972,"2025-12":202946,"2026-01":184083,"2026-02":201911,"2026-03":197657,"2026-04":184860,"2026-05":219431},"utilities":{"2025-05":{"water":2522,"gas":0,"elec":6225},"2025-06":{"water":1282,"gas":0,"elec":8582},"2025-07":{"water":0,"gas":8409,"elec":5975},"2025-08":{"water":0,"gas":7775,"elec":9512},"2025-09":{"water":4443,"gas":4115,"elec":5759},"2025-10":{"water":4978,"gas":4754,"elec":5864},"2025-11":{"water":7183,"gas":5651,"elec":9377},"2025-12":{"water":4978,"gas":5880,"elec":11129},"2026-01":{"water":0,"gas":6780,"elec":13758},"2026-02":{"water":4978,"gas":5336,"elec":13208},"2026-03":{"water":4928,"gas":5957,"elec":6918},"2026-04":{"water":0,"gas":6831,"elec":13339}}}');
+} catch(e) {
+  IMPORTED_DATA = {entries:{}, salaries:{}, utilities:{}};
+}
+
+// ── 定数 ──
+var BASE_SALARY = 200000;
+var BONUS = 200000;
+var BONUS_MONTHS = [6,11];
+var VARIABLE_BUDGET = 60000;
+var INITIAL_ASSETS = 276007;
+var INITIAL_DEBT = 661000;
+var START_Y = 2026, START_M = 4;
+
+var FIXED_DEFAULT = [
+  {id:1,name:'家賃',amount:42330,type:'fixed',day:26},
+  {id:2,name:'サブスク',amount:6000,type:'fixed',day:26},
+  {id:3,name:'スマホ',amount:6000,type:'fixed',day:26},
+  {id:4,name:'マツダ',amount:10000,type:'fixed',day:26},
+  {id:5,name:'水道光熱費（概算）',amount:15000,type:'utility',day:26,isUtilityPlaceholder:true},
+  {id:6,name:'積立NISA（楽天VTI）',amount:30000,type:'invest',day:1},
+  {id:7,name:'親への返済',amount:30000,type:'repay',day:1},
+];
+
+var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',travel:'旅行',utility:'光熱費',other:'その他'};
+var CAT_CLASS = {snack:'cat-snack',daily:'cat-daily',clothes:'cat-clothes',beauty:'cat-beauty',hobby:'cat-hobby',social:'cat-social',travel:'cat-travel',utility:'cat-utility',other:'cat-other'};
+var MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+var DOW = ['日','月','火','水','木','金','土'];
+
+// ── 状態 ──
+var S = loadState();
+
+function loadState(){
+  try{
+    var s = localStorage.getItem('kakeibo_v5');
+    if(s) return JSON.parse(s);
+  }catch(e){}
+  var imp = IMPORTED_DATA || {entries:{},salaries:{},utilities:{}};
+  return {
+    curY:START_Y, curM:START_M,
+    fixedItems:FIXED_DEFAULT.map(function(f){return Object.assign({},f);}),
+    nextId:20,
+    entries: imp.entries || {},
+    salaries: imp.salaries || {},
+    utilities: imp.utilities || {}
+  };
+}
+function save(){try{localStorage.setItem('kakeibo_v5',JSON.stringify(S));}catch(e){}}
+
+function mkey(y,m){return y+'-'+(m+1<10?'0':'')+(m+1);}
+function curKey(){return mkey(S.curY,S.curM);}
+function isBonus(m){return BONUS_MONTHS.indexOf(m)>=0;}
+function getSalary(y,m){var v=S.salaries[mkey(y,m)];return v!=null?v:BASE_SALARY;}
+function getIncome(y,m){return getSalary(y,m)+(isBonus(m)?BONUS:0);}
+function getEntries(y,m){return S.entries[mkey(y,m)]||[];}
+function setEntries(arr){S.entries[curKey()]=arr;}
+function getUtility(y,m){return S.utilities[mkey(y,m)]||null;}
+
+function getFixedTotal(y,m){
+  var util=getUtility(y,m);
+  var t=S.fixedItems.reduce(function(s,f){
+    if(f.isUtilityPlaceholder&&util) return s;
+    return s+f.amount;
+  },0);
+  if(util) t+=(util.water+util.gas+util.elec);
+  return t;
+}
+function getVariableTotal(y,m){return getEntries(y,m).reduce(function(s,e){return s+e.amount;},0);}
+
+function calcAccum(toY,toM){
+  var assets=INITIAL_ASSETS,debt=INITIAL_DEBT,nisa=0;
+  var y=START_Y,m=START_M;
+  while(y<toY||(y===toY&&m<=toM)){
+    assets+=getIncome(y,m)-getFixedTotal(y,m)-getVariableTotal(y,m);
+    var rp=S.fixedItems.filter(function(f){return f.type==='repay';}).reduce(function(s,f){return s+f.amount;},0);
+    debt=Math.max(debt-rp,0);
+    nisa+=S.fixedItems.filter(function(f){return f.type==='invest';}).reduce(function(s,f){return s+f.amount;},0);
+    m++;if(m>11){m=0;y++;}
+  }
+  return {assets:Math.max(assets,0),debt:debt,nisa:nisa};
+}
+
+function fmt(n){return Math.round(n).toLocaleString('ja-JP')+'円';}
+function fmtM(n){var a=Math.abs(n);if(a>=100000)return (Math.round(n/1000)/10).toFixed(1)+'万円';return fmt(n);}
+function fmtCal(n){return Math.round(n).toLocaleString('ja-JP');}
+
+function render(){
+  var y=S.curY,m=S.curM;
+  document.getElementById('hdr-year').textContent=y;
+  document.getElementById('month-label').textContent=y+'年 '+MN[m];
+  document.getElementById('bonus-badge').style.display=isBonus(m)?'':'none';
+
+  var income=getIncome(y,m);
+  var fixedT=getFixedTotal(y,m);
+  var varT=getVariableTotal(y,m);
+  var balance=income-fixedT-varT;
+
+  document.getElementById('s-income').textContent=fmtM(income);
+  document.getElementById('s-income-sub').textContent=isBonus(m)?'給料+ボーナス':'';
+  document.getElementById('s-fixed').textContent=fmtM(fixedT);
+  document.getElementById('s-var').textContent=fmtM(varT);
+
+  var sBal=document.getElementById('s-bal');
+  sBal.textContent=(balance>=0?'+':'')+fmtM(balance);
+  sBal.className='stat-value '+(balance>=0?'positive':'negative');
+
+  var acc=calcAccum(y,m);
+  document.getElementById('s-debt-sub').textContent=acc.debt>0?'返済残 '+fmtM(acc.debt):'返済完了！';
+
+  var pct=Math.min(Math.round(varT/VARIABLE_BUDGET*100),100);
+  document.getElementById('v-total-lbl').textContent=fmt(varT);
+  document.getElementById('v-ppct').textContent=Math.round(varT/VARIABLE_BUDGET*100)+'%';
+  var pf=document.getElementById('v-pfill');
+  pf.style.width=pct+'%';
+  pf.className='pfill '+(pct<70?'fill-ok':pct<100?'fill-warn':'fill-over');
+
+  document.getElementById('f-total-lbl').textContent=fmt(fixedT);
+
+  renderEntries(y,m);
+  renderFixed(y,m);
+
+  var np=Math.min(Math.round(acc.nisa/1200000*100),100);
+  document.getElementById('nisa-fill').style.width=np+'%';
+  document.getElementById('nisa-used').textContent='積立累計 '+fmtM(acc.nisa);
+  document.getElementById('debt-display').textContent=fmtM(acc.debt);
+  var dp=Math.round((1-acc.debt/INITIAL_DEBT)*100);
+  document.getElementById('debt-fill').style.width=Math.max(acc.debt/INITIAL_DEBT*100,0)+'%';
+  document.getElementById('debt-pct').textContent='返済済み '+dp+'%';
+  var rm=S.fixedItems.filter(function(f){return f.type==='repay';}).reduce(function(s,f){return s+f.amount;},0);
+  document.getElementById('debt-months').textContent=acc.debt<=0?'完済':rm>0?'あと約'+Math.ceil(acc.debt/rm)+'ヶ月':'';
+
+  renderCalendar(y,m);
+}
+
+function renderEntries(y,m){
+  var list=document.getElementById('entry-list');
+  var entries=getEntries(y,m);
+  if(!entries.length){list.innerHTML='<div class="empty-state">📋 まだ記録がありません</div>';return;}
+  var html='';
+  var rev=[].concat(entries).reverse();
+  rev.forEach(function(e,ri){
+    var i=entries.length-1-ri;
+    html+='<div class="entry-item" onclick="openEditModal('+i+')" style="cursor:pointer">'+
+      '<span class="ecat '+(CAT_CLASS[e.cat]||'cat-other')+'">'+(CAT_LABELS[e.cat]||'その他')+'</span>'+
+      '<span class="ename">'+e.name+'</span>'+
+      '<span class="eamt">'+fmt(e.amount)+'</span>'+
+      '<span class="edate">'+e.day+'日</span>'+
+      '<button class="del-btn" onclick="event.stopPropagation();delEntry('+i+')">×</button>'+
+    '</div>';
+  });
+  list.innerHTML=html;
+}
+
+var editingIdx = -1;
+function openEditModal(idx){
+  var entries=getEntries(S.curY,S.curM);
+  var e=entries[idx];
+  if(!e) return;
+  editingIdx=idx;
+  document.getElementById('edit-name').value=e.name;
+  document.getElementById('edit-amount').value=e.amount;
+  document.getElementById('edit-cat').value=e.cat||'other';
+  document.getElementById('edit-modal-overlay').style.display='flex';
+}
+function closeEditModal(ev){
+  if(!ev||ev.target===document.getElementById('edit-modal-overlay')){
+    document.getElementById('edit-modal-overlay').style.display='none';
+    editingIdx=-1;
+  }
+}
+function saveEdit(){
+  if(editingIdx<0) return;
+  var name=document.getElementById('edit-name').value.trim();
+  var amount=parseInt(document.getElementById('edit-amount').value);
+  var cat=document.getElementById('edit-cat').value;
+  if(!name||!amount||amount<=0){alert('内容と金額を入力してください');return;}
+  var entries=getEntries(S.curY,S.curM);
+  entries[editingIdx].name=name;
+  entries[editingIdx].amount=amount;
+  entries[editingIdx].cat=cat;
+  setEntries(entries);
+  document.getElementById('edit-modal-overlay').style.display='none';
+  editingIdx=-1;
+  save();render();
+}
+
+function renderFixed(y,m){
+  var util=getUtility(y,m);
+  var tagMap={fixed:'固定費',invest:'積立',repay:'返済',utility:'光熱費'};
+  var tagClass={fixed:'tag-fixed',invest:'tag-invest',repay:'tag-repay',utility:'tag-utility'};
+  var html='';
+  S.fixedItems.forEach(function(f){
+    var dimmed=f.isUtilityPlaceholder&&util?' dimmed':'';
+    html+='<div class="fixed-item'+dimmed+'">'+
+      '<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'+
+      '<span class="fname">'+f.name+'</span>'+
+      '<span class="famt">'+fmt(f.amount)+'</span>'+
+      '<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'+
+    '</div>';
+  });
+  document.getElementById('fixed-list').innerHTML=html;
+
+  var stEl=document.getElementById('utility-status');
+  var regEl=document.getElementById('utility-registered');
+  if(util){
+    var total=util.water+util.gas+util.elec;
+    stEl.textContent='登録済 '+fmt(total);stEl.style.color='var(--accent-text)';
+    regEl.style.display='block';
+    regEl.textContent='水道 '+fmt(util.water)+' ／ ガス '+fmt(util.gas)+' ／ 電気 '+fmt(util.elec);
+    document.getElementById('u-water').value=util.water||'';
+    document.getElementById('u-gas').value=util.gas||'';
+    document.getElementById('u-elec').value=util.elec||'';
+  } else {
+    stEl.textContent='未登録（概算15,000円）';stEl.style.color='var(--text-faint)';
+    regEl.style.display='none';
+  }
+}
+
+function renderCalendar(y,m){
+  document.getElementById('cal-title').textContent=y+'年 '+MN[m];
+  var grid=document.getElementById('cal-grid');
+  var daysInMonth=new Date(y,m+1,0).getDate();
+  var firstDow=new Date(y,m,1).getDay();
+  var today=new Date();
+  var isThisMonth=today.getFullYear()===y&&today.getMonth()===m;
+
+  var dayEntries={};
+  getEntries(y,m).forEach(function(e){
+    if(!dayEntries[e.day]) dayEntries[e.day]=[];
+    dayEntries[e.day].push(e);
+  });
+
+  var fixedDays={};
+  S.fixedItems.forEach(function(f){
+    if(f.day){if(!fixedDays[f.day]) fixedDays[f.day]=[];fixedDays[f.day].push(f);}
+  });
+
+  var incomeDays={};
+  incomeDays[10]=getSalary(y,m)+(isBonus(m)?BONUS:0);
+
+  var html='';
+  ['日','月','火','水','木','金','土'].forEach(function(d,i){
+    html+='<div class="cal-head '+(i===0?'sun':i===6?'sat':'')+'">'+d+'</div>';
+  });
+  for(var i=0;i<firstDow;i++) html+='<div class="cal-cell other-month"></div>';
+
+  for(var d=1;d<=daysInMonth;d++){
+    var dow=(firstDow+d-1)%7;
+    var isToday=isThisMonth&&today.getDate()===d;
+    var entries2=dayEntries[d]||[];
+    var dayExp=entries2.reduce(function(s,e){return s+e.amount;},0);
+    var hasFixed=!!fixedDays[d];
+    var incAmt=incomeDays[d]||0;
+    var cls='cal-cell'+(isToday?' today':'')+(incAmt>0?' has-income':'');
+    html+='<div class="'+cls+'" onclick="openDayModal('+d+')">'
+      +'<div class="cal-day '+(dow===0?'sun':dow===6?'sat':'')+'">'+d+'</div>'
+      +(incAmt>0?'<div class="cal-income">+'+fmtCal(incAmt)+'</div>':'')
+      +(dayExp>0?'<div class="cal-expense">-'+fmtCal(dayExp)+'</div>':'')
+      +(hasFixed?'<span class="cal-fixed-dot"></span>':'')
+      +'</div>';
+  }
+  grid.innerHTML=html;
+}
+
+function openDayModal(d){
+  var y=S.curY,m=S.curM;
+  var dow=new Date(y,m,d).getDay();
+  var dowLabel=['日','月','火','水','木','金','土'][dow];
+  document.getElementById('modal-title-text').textContent=y+'年'+MN[m]+d+'日（'+dowLabel+'）';
+
+  var entries=getEntries(y,m).filter(function(e){return e.day===d;});
+  var fList=S.fixedItems.filter(function(f){return f.day===d;});
+  var util=getUtility(y,m);
+  if(util&&d===26) fList=fList.concat([{name:'水道光熱費(実費)',amount:util.water+util.gas+util.elec,type:'utility'}]);
+
+  var salary=getSalary(y,m);
+  var bonusAmt=isBonus(m)?BONUS:0;
+  var html='';
+
+  if(d===10){
+    html+='<div style="margin-bottom:10px"><div class="section-sub" style="margin-bottom:6px">収入</div>';
+    html+='<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--accent-light);border-radius:var(--r);font-size:13px"><span>給料</span><span style="font-family:var(--mono);color:var(--accent)">'+fmt(salary)+'</span></div>';
+    if(bonusAmt>0) html+='<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--warn-light);border-radius:var(--r);font-size:13px;margin-top:4px"><span>ボーナス</span><span style="font-family:var(--mono);color:var(--warn)">'+fmt(bonusAmt)+'</span></div>';
+    html+='</div>';
+  }
+  if(fList.length>0){
+    html+='<div style="margin-bottom:10px"><div class="section-sub" style="margin-bottom:6px">固定費</div>';
+    fList.forEach(function(f){
+      html+='<div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--blue-light);border-radius:var(--r);font-size:13px;margin-bottom:3px"><span>'+f.name+'</span><span style="font-family:var(--mono);color:var(--danger)">-'+fmt(f.amount)+'</span></div>';
+    });
+    html+='</div>';
+  }
+  if(entries.length>0){
+    html+='<div><div class="section-sub" style="margin-bottom:6px">変動費</div>';
+    entries.forEach(function(e){
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--surface2);border-radius:var(--r);font-size:13px;margin-bottom:3px">'
+        +'<span style="display:flex;align-items:center;gap:6px"><span class="ecat '+(CAT_CLASS[e.cat]||'cat-other')+'">'+(CAT_LABELS[e.cat]||'その他')+'</span>'+e.name+'</span>'
+        +'<span style="font-family:var(--mono);color:var(--danger)">-'+fmt(e.amount)+'</span>'
+        +'</div>';
+    });
+    var dt=entries.reduce(function(s,e){return s+e.amount;},0);
+    html+='<div style="text-align:right;font-size:12px;color:var(--text-faint);margin-top:4px;font-family:var(--mono)">変動費計 '+fmt(dt)+'</div></div>';
+  }
+  if(d!==10&&fList.length===0&&entries.length===0){
+    html='<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:13px">この日の記録はありません</div>';
+  }
+  document.getElementById('modal-content').innerHTML=html;
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function closeModal(e){
+  if(!e||e.target===document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').style.display='none';
+}
+
+var chartA=null,chartE=null;
+function renderGraphs(){
+  var labels=[],assetsArr=[],expenseArr=[];
+  var y=START_Y,m=START_M;
+  var ey=S.curY,em=S.curM;
+  while(y<ey||(y===ey&&m<=em)){
+    labels.push(y+'/'+(m+1<10?'0':'')+(m+1));
+    var acc=calcAccum(y,m);
+    assetsArr.push(Math.round(acc.assets/1000)/10);
+    expenseArr.push(Math.round((getFixedTotal(y,m)+getVariableTotal(y,m))/10000*10)/10);
+    m++;if(m>11){m=0;y++;}
+  }
+  if(!labels.length) return;
+  var gOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:function(v){return v+'万';},font:{size:10}},grid:{color:'rgba(120,120,120,.1)'}}}};
+  if(chartA){chartA.data.labels=labels;chartA.data.datasets[0].data=assetsArr;chartA.update();}
+  else chartA=new Chart(document.getElementById('chart-assets'),{type:'line',data:{labels:labels,datasets:[{data:assetsArr,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]},options:gOpts});
+  if(chartE){chartE.data.labels=labels;chartE.data.datasets[0].data=expenseArr;chartE.update();}
+  else chartE=new Chart(document.getElementById('chart-expense'),{type:'bar',data:{labels:labels,datasets:[{data:expenseArr,backgroundColor:'rgba(139,42,42,.15)',borderColor:'#8B2A2A',borderWidth:1.5,borderRadius:4}]},options:gOpts});
+}
+
+function addEntry(){
+  var name=document.getElementById('v-name').value.trim();
+  var amount=parseInt(document.getElementById('v-amount').value);
+  var cat=document.getElementById('v-cat').value;
+  if(!name||!amount||amount<=0) return;
+  var entries=getEntries(S.curY,S.curM);
+  entries.push({name:name,amount:amount,cat:cat,day:new Date().getDate(),id:Date.now()});
+  setEntries(entries);
+  document.getElementById('v-name').value='';
+  document.getElementById('v-amount').value='';
+  save();render();
+}
+
+function delEntry(idx){
+  var entries=getEntries(S.curY,S.curM);
+  entries.splice(idx,1);setEntries(entries);save();render();
+}
+
+function addFixed(){
+  var name=document.getElementById('f-name').value.trim();
+  var amount=parseInt(document.getElementById('f-amount').value);
+  var type=document.getElementById('f-type').value;
+  if(!name||!amount||amount<=0) return;
+  S.fixedItems.push({id:S.nextId++,name:name,amount:amount,type:type});
+  document.getElementById('f-name').value='';
+  document.getElementById('f-amount').value='';
+  save();render();
+}
+
+function delFixed(id){S.fixedItems=S.fixedItems.filter(function(f){return f.id!==id;});save();render();}
+
+function saveUtility(){
+  var water=parseInt(document.getElementById('u-water').value)||0;
+  var gas=parseInt(document.getElementById('u-gas').value)||0;
+  var elec=parseInt(document.getElementById('u-elec').value)||0;
+  if(water===0&&gas===0&&elec===0){alert('金額を入力してください');return;}
+  S.utilities[curKey()]={water:water,gas:gas,elec:elec};save();render();
+}
+
+function saveSalary(){
+  var val=parseInt(document.getElementById('salary-input').value);
+  if(!val||val<=0){alert('金額を入力してください');return;}
+  S.salaries[curKey()]=val;save();render();
+  document.getElementById('salary-input').value='';
+  alert(MN[S.curM]+'の給料を '+fmt(val)+' で保存しました');
+}
+
+function changeMonth(d){
+  S.curM+=d;
+  if(S.curM>11){S.curM=0;S.curY++;}
+  if(S.curM<0){S.curM=11;S.curY--;}
+  if(S.curY<START_Y||(S.curY===START_Y&&S.curM<START_M)){S.curY=START_Y;S.curM=START_M;}
+  save();render();
+}
+
+function sw(e,tab){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  e.target.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='graph') renderGraphs();
+}
+
+function openSettings(){document.getElementById('settings-overlay').style.display='flex';}
+function closeSettings(){document.getElementById('settings-overlay').style.display='none';}
+function closeSettingsOutside(e){if(e.target===document.getElementById('settings-overlay')) closeSettings();}
+
+function resetData(){
+  if(!confirm('すべてのデータを初期化しますか？')) return;
+  localStorage.removeItem('kakeibo_v5');S=loadState();save();render();
+}
+
+document.getElementById('v-amount').addEventListener('keydown',function(e){if(e.key==='Enter') addEntry();});
+document.getElementById('f-amount').addEventListener('keydown',function(e){if(e.key==='Enter') addFixed();});
+
+render();
+</script>
+</body>
+</html>
