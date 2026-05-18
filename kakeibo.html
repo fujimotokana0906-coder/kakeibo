@@ -615,7 +615,7 @@ function calcAccum(toY,toM){
 }
 
 function fmt(n){return Math.round(n).toLocaleString('ja-JP')+'円';}
-function fmtM(n){var a=Math.abs(n);if(a>=100000)return (Math.round(n/1000)/10).toFixed(1)+'万円';return fmt(n);}
+function fmtM(n){return fmt(n);} // 全て10,000円形式に統一
 function fmtCal(n){return Math.round(n).toLocaleString('ja-JP');}
 
 function render(){
@@ -765,17 +765,17 @@ function renderFixed(y,m){
         var totalColor=overBudget?'var(--danger)':'var(--text)';
         var arrow=f.type==='budget-accordion'?(f._open?'▲':'▼'):'';
         // 閉じた状態：▼ 合計金額（サブスクと同じ形）
-        amtDisplay=(f.type==='budget-accordion'?'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+arrow+'</button>':'')
+        amtDisplay=(f.type==='budget-accordion'?'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" ontouchend="handleAccordionTouch(event,'+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:16px;padding:4px 8px;-webkit-tap-highlight-color:transparent;touch-action:manipulation">'+arrow+'</button>':'')
           +'<span style="font-family:var(--mono);font-size:13px;color:'+totalColor+'">'+total.toLocaleString('ja-JP')+'円</span>';
       } else if(f.linkedKeyword){
         var balColor2=bal>=0?'var(--accent)':'var(--danger)';
         var ebArrow=f.type==='budget-accordion'?(f._open?'▲':'▼'):'';
-        amtDisplay=(f.type==='budget-accordion'?'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+ebArrow+'</button>':'')
+        amtDisplay=(f.type==='budget-accordion'?'<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" ontouchend="handleAccordionTouch(event,'+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:16px;padding:4px 8px;-webkit-tap-highlight-color:transparent;touch-action:manipulation">'+ebArrow+'</button>':'')
           +'<span style="font-family:var(--mono);font-size:13px;color:'+balColor2+'">'+bal.toLocaleString('ja-JP')+'円</span>';
       }
     } else if(f.type==='accordion'){
       var isOpen=f._open?true:false;
-      amtDisplay='<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 4px;-webkit-tap-highlight-color:transparent">'+(isOpen?'▲':'▼')+'</button>'
+      amtDisplay='<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" ontouchend="handleAccordionTouch(event,'+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:16px;padding:4px 8px;-webkit-tap-highlight-color:transparent;touch-action:manipulation">'+(isOpen?'▲':'▼')+'</button>'
         +'<span class="famt">'+fmt(f.amount)+'</span>';
     } else {
       amtDisplay='<span class="famt">'+fmt(f.amount)+'</span>';
@@ -892,6 +892,12 @@ function toggleAccordion(id){
   if(f) f._open=!f._open;
   save();render();
 }
+// iPhoneタッチ対応
+function handleAccordionTouch(e, id){
+  e.preventDefault();
+  e.stopPropagation();
+  toggleAccordion(id);
+}
 function addAccordionItem(fid){
   var f=S.fixedItems.filter(function(x){return x.id===fid;})[0];
   if(!f) return;
@@ -984,11 +990,26 @@ function renderCalendar(y,m){
     var hasFixed=!!fixedDays[d];
     var incAmt=incomeDays[d]||0;
     var cls='cal-cell'+(isToday?' today':'')+(incAmt>0?' has-income':'');
+    // 変動費の内訳（excludeVar除外）
+    var visEntries=entries2.filter(function(e){return !e.excludeVar;});
+    var maxShow=3;
+    var entryHtml='';
+    if(incAmt>0){
+      entryHtml+='<div class="cal-income">+'+fmtCal(incAmt)+'</div>';
+    }
+    visEntries.slice(0,maxShow).forEach(function(e){
+      var short=e.name.length>5?e.name.slice(0,5)+'…':e.name;
+      entryHtml+='<div class="cal-expense">'+short+' -'+fmtCal(e.amount)+'</div>';
+    });
+    if(visEntries.length>maxShow){
+      entryHtml+='<div style="font-size:8px;color:var(--text-faint);margin-top:1px">他'+(visEntries.length-maxShow)+'件</div>';
+    }
+    if(hasFixed&&visEntries.length===0&&incAmt===0){
+      entryHtml+='<span class="cal-fixed-dot"></span>';
+    }
     html+='<div class="'+cls+'" onclick="openDayModal('+d+')">'
-      +'<div class="cal-day '+(dow===0?'sun':dow===6?'sat':'')+'">'+d+'</div>'
-      +(incAmt>0?'<div class="cal-income">+'+fmtCal(incAmt)+'</div>':'')
-      +(dayExp>0?'<div class="cal-expense">-'+fmtCal(dayExp)+'</div>':'')
-      +(hasFixed?'<span class="cal-fixed-dot"></span>':'')
+      +'<div class="cal-day '+(dow===0?'sun':dow===6?'sat':'')+'">'+(d)+'</div>'
+      +entryHtml
       +'</div>';
   }
   grid.innerHTML=html;
