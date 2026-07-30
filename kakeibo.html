@@ -585,6 +585,11 @@ function loadState(){
         }
         return f;
       });
+      // マツダがなければ復元
+      var hasMazda=state.fixedItems.some(function(f){return f.id===4;});
+      if(!hasMazda){
+        state.fixedItems.splice(3,0,{id:4,name:'マツダ',amount:14000,type:'budget-accordion',day:26,linkedCat:'transport',includeInBalance:true,items:[{name:'マツダ本体',amount:10000},{name:'車の保険',amount:4000}]});
+      }
       if(!state.bankBalances) state.bankBalances={};
       if(!state.bonuses) state.bonuses={};
       if(!state.balanceAdj) state.balanceAdj={};
@@ -967,7 +972,7 @@ function renderFixed(y,m){
           var _el=f.endMk?f.endMk.slice(2).replace('-','/'):'';
           _nm=_nm+'<span style="font-size:10px;color:var(--text-faint);margin-left:4px">('+_sl+'~'+_el+')</span>';
         }
-        return '<span class="fname">'+_nm+'</span>';
+        return '<span class="fname" onclick="editFixedName('+f.id+')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="タップで名前変更">'+_nm+'</span>';
       }())
       +amtDisplay
       +'<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'
@@ -1479,14 +1484,12 @@ function delFixed(id){
   S.fixedItems=S.fixedItems.filter(function(x){return x.id!==id;});
   save();render();
 }
-function editFixedAmount(id){
+function editFixedName(id){
   var f=S.fixedItems.filter(function(x){return x.id===id;})[0];
   if(!f) return;
-  var newAmt=prompt(f.name+'の金額を変更（現在：'+fmt(f.amount)+'）',''+f.amount);
-  if(newAmt===null) return;
-  var val=parseInt(newAmt);
-  if(isNaN(val)||val<0){alert('正しい金額を入力してください');return;}
-  f.amount=val;
+  var newName=prompt('項目名を変更（現在：'+f.name+'）',f.name);
+  if(newName===null||newName.trim()==='') return;
+  f.name=newName.trim();
   save();render();
 }
 function editFixedAmount(id){
