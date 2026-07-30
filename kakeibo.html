@@ -1453,7 +1453,7 @@ function updateSalaryBadge(){
   if(sd&&sv&&sal){
     sd.style.display='block';
     var total=sal+bonusAmt;
-    sv.textContent=fmt(total)+(bonusAmt>0?' (給料 '+fmt(sal)+' ＋ ボーナス '+fmt(bonusAmt)+')':'');
+    sv.textContent=fmt(total);
   } else if(sd){ sd.style.display='none'; }
   // ボーナス入力欄の表示（7月・12月のみ）
   var bw=document.getElementById('bonus-input-wrap');
