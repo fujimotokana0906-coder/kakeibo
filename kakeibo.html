@@ -438,16 +438,13 @@ select{-webkit-appearance:auto;appearance:auto}
 
     <div style="margin-bottom:20px">
       <div class="card-title">給料の設定</div>
-      <!-- 入力済み表示 -->
-      <div id="salary-saved-display" style="display:none;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
-        <div style="font-size:11px;color:var(--accent-text);margin-bottom:4px">✓ 今月の給料（登録済み）</div>
-        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent)" id="salary-saved-val">—</div>
+      <!-- 合計金額表示（欄外） -->
+      <div id="salary-saved-display" style="display:none;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">✓ 登録済み合計</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent)" id="salary-saved-val">—</div>
       </div>
-      <!-- ボーナス入力済み表示 -->
-      <div id="bonus-saved-display" style="display:none;background:var(--warn-light);border:1px solid #E8D48A;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
-        <div style="font-size:11px;color:var(--warn);margin-bottom:4px">✓ 今月のボーナス（登録済み）</div>
-        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--warn)" id="bonus-saved-val">—</div>
-      </div>
+      <!-- ボーナス用（非表示・互換性のため残す） -->
+      <div id="bonus-saved-display" style="display:none"><div id="bonus-saved-val"></div></div>
       <!-- 給料入力 -->
       <div style="display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:6px">
         <span style="font-size:12px;color:var(--accent-text);flex-shrink:0">給料</span>
@@ -1449,23 +1446,15 @@ function saveSalary(){
 }
 
 function updateSalaryBadge(){
-  // 給料入力済み表示
   var sd=document.getElementById('salary-saved-display');
   var sv=document.getElementById('salary-saved-val');
   var sal=S.salaries[curKey()];
+  var bonusAmt=S.bonuses&&S.bonuses[curKey()]||0;
   if(sd&&sv&&sal){
     sd.style.display='block';
-    var bonusAmt=S.bonuses&&S.bonuses[curKey()]||0;
-    sv.textContent=fmt(sal)+(bonusAmt>0?' ＋ ボーナス '+fmt(bonusAmt):'');
+    var total=sal+bonusAmt;
+    sv.textContent=fmt(total)+(bonusAmt>0?' (給料 '+fmt(sal)+' ＋ ボーナス '+fmt(bonusAmt)+')':'');
   } else if(sd){ sd.style.display='none'; }
-  // ボーナス入力済み表示
-  var bd=document.getElementById('bonus-saved-display');
-  var bv=document.getElementById('bonus-saved-val');
-  var bonusAmt2=S.bonuses&&S.bonuses[curKey()]||0;
-  if(bd&&bv){
-    bd.style.display=(isBonus(S.curM)&&bonusAmt2>0)?'block':'none';
-    if(bv) bv.textContent=fmt(bonusAmt2);
-  }
   // ボーナス入力欄の表示（7月・12月のみ）
   var bw=document.getElementById('bonus-input-wrap');
   if(bw) bw.style.display=isBonus(S.curM)?'flex':'none';
