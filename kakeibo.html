@@ -87,8 +87,10 @@ select{-webkit-appearance:auto;appearance:auto}
 .fixed-item{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--surface2);border-radius:var(--r);border:1px solid transparent;transition:opacity .15s}
 .fixed-item.dragging{opacity:.4;border:1px dashed var(--border)}
 .fixed-item.drag-over{border-color:var(--accent)}
-.drag-handle{color:var(--text-faint);font-size:16px;cursor:grab;flex-shrink:0;padding:0 2px;touch-action:none;user-select:none}
-.drag-handle:active{cursor:grabbing}
+.drag-handle{color:var(--text-faint);font-size:18px;cursor:grab;flex-shrink:0;padding:2px 4px;touch-action:none;user-select:none;-webkit-user-select:none}
+.drag-handle:active{cursor:grabbing;color:var(--accent)}
+.fixed-item.drag-over-top{border-top:2px solid var(--accent)}
+.fixed-item.drag-over-bottom{border-bottom:2px solid var(--accent)}
 .fixed-item.dimmed{opacity:.35;text-decoration:line-through}
 .ftag{font-size:10px;padding:2px 6px;border-radius:20px;border:1px solid;flex-shrink:0}
 .tag-fixed{background:var(--blue-light);color:var(--blue);border-color:#A8C4E8}
@@ -153,6 +155,18 @@ select{-webkit-appearance:auto;appearance:auto}
   <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
   <span class="month-label" id="month-label"></span>
   <button class="nav-btn" onclick="changeMonth(1)">›</button>
+</div>
+
+<!-- 資産合計 大表示 -->
+<div style="background:var(--accent);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計</div>
+    <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-assets-big">—</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px" id="s-debt-label">返済残</div>
+    <div style="font-family:var(--mono);font-size:15px;color:rgba(255,255,255,.85)" id="s-debt-big">—</div>
+  </div>
 </div>
 
 <div class="summary-grid">
@@ -265,7 +279,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <span class="tamount" id="v-total-lbl">0円</span>
     </div>
     <div class="pbar"><div class="pfill" id="v-pfill" style="width:0%"></div></div>
-    <div class="plabel"><span>予算 60,000円</span><span id="v-ppct">0%</span></div>
+    <div class="plabel"><span>予算 80,000円</span><span id="v-ppct">0%</span></div>
     <div style="height:10px"></div>
     <div class="entry-list" id="entry-list"><div class="empty-state">📋 まだ記録がありません</div></div>
   </div>
@@ -297,6 +311,11 @@ select{-webkit-appearance:auto;appearance:auto}
       <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8B2A2A;margin-bottom:8px;display:flex;justify-content:space-between">
         <span>水道光熱費（実費登録）</span>
         <span id="utility-status" style="font-weight:400;font-size:11px"></span>
+      </div>
+      <!-- 入力済み表示 -->
+      <div id="utility-saved-display" style="display:none;background:#FFF0F0;border-radius:var(--r);padding:8px 10px;margin-bottom:8px;font-size:12px;color:#8B2A2A">
+        <div style="margin-bottom:2px;font-weight:500">✓ 今月の実費（登録済み）</div>
+        <div id="utility-saved-val" style="font-family:var(--mono);font-size:15px;font-weight:700"></div>
       </div>
       <div class="util-row"><span class="util-label">水道代</span><input type="number" id="u-water" placeholder="実費" min="0" inputmode="numeric"><span style="font-size:12px;color:var(--text-faint)">円</span></div>
       <div class="util-row"><span class="util-label">ガス代</span><input type="number" id="u-gas" placeholder="実費" min="0" inputmode="numeric"><span style="font-size:12px;color:var(--text-faint)">円</span></div>
@@ -418,14 +437,28 @@ select{-webkit-appearance:auto;appearance:auto}
     </div>
 
     <div style="margin-bottom:20px">
-      <div class="card-title">給料の設定（毎月10日に更新）</div>
-      <div id="salary-paid-badge" style="display:none;margin-bottom:8px">
-        <span style="background:var(--accent-light);color:var(--accent-text);border:1px solid #9ECBAF;border-radius:20px;font-size:12px;padding:3px 10px;font-family:var(--mono)">✓ 振込済</span>
+      <div class="card-title">給料の設定</div>
+      <!-- 入力済み表示 -->
+      <div id="salary-saved-display" style="display:none;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--accent-text);margin-bottom:4px">✓ 今月の給料（登録済み）</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent)" id="salary-saved-val">—</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
-        <span style="font-size:12px;color:var(--accent-text);flex-shrink:0">今月の給料</span>
-        <input type="number" id="salary-input" inputmode="numeric" placeholder="200000" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #9ECBAF;border-radius:0;padding:2px 4px;width:100px;color:var(--accent-text)">
+      <!-- ボーナス入力済み表示 -->
+      <div id="bonus-saved-display" style="display:none;background:var(--warn-light);border:1px solid #E8D48A;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--warn);margin-bottom:4px">✓ 今月のボーナス（登録済み）</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--warn)" id="bonus-saved-val">—</div>
+      </div>
+      <!-- 給料入力 -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid #9ECBAF;border-radius:var(--r);padding:10px 12px;margin-bottom:6px">
+        <span style="font-size:12px;color:var(--accent-text);flex-shrink:0">給料</span>
+        <input type="number" id="salary-input" inputmode="numeric" placeholder="200000" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #9ECBAF;border-radius:0;padding:2px 4px;flex:1;color:var(--accent-text)">
         <span style="font-size:12px;color:var(--accent-text)">円</span>
+      </div>
+      <!-- ボーナス入力（7月・12月のみ） -->
+      <div id="bonus-input-wrap" style="display:none;align-items:center;gap:8px;background:var(--warn-light);border:1px solid #E8D48A;border-radius:var(--r);padding:10px 12px;margin-bottom:6px">
+        <span style="font-size:12px;color:var(--warn);flex-shrink:0">ボーナス</span>
+        <input type="number" id="bonus-input" inputmode="numeric" placeholder="0" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #E8D48A;border-radius:0;padding:2px 4px;flex:1;color:var(--warn)">
+        <span style="font-size:12px;color:var(--warn)">円</span>
       </div>
       <button class="btn btn-primary" style="width:100%" onclick="saveSalary()">この月の給料を保存</button>
       <div style="font-size:11px;color:var(--text-faint);margin-top:6px">未設定の月は基本給 200,000円で計算</div>
@@ -481,7 +514,7 @@ try {
 var BASE_SALARY = 200000;
 var BONUS = 200000;
 var BONUS_MONTHS = [6,11];
-var VARIABLE_BUDGET = 60000;
+var VARIABLE_BUDGET = 80000;
 var INITIAL_ASSETS = 276007;
 var INITIAL_DEBT = 661000;
 var START_Y = 2026, START_M = 4;
@@ -544,6 +577,7 @@ function loadState(){
         return f;
       });
       if(!state.bankBalances) state.bankBalances={};
+      if(!state.bonuses) state.bonuses={};
       if(!state.balanceAdj) state.balanceAdj={};
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
@@ -575,6 +609,7 @@ function loadState(){
     utilities: imp.utilities || {},
     bankBalances: {},      // {mkey: {rakuten, yucho}}  月末実際在高
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
+    bonuses: {},           // {mkey: ボーナス額}
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
@@ -583,7 +618,13 @@ function mkey(y,m){return y+'-'+(m+1<10?'0':'')+(m+1);}
 function curKey(){return mkey(S.curY,S.curM);}
 function isBonus(m){return BONUS_MONTHS.indexOf(m)>=0;}
 function getSalary(y,m){var v=S.salaries[mkey(y,m)];return v!=null?v:BASE_SALARY;}
-function getIncome(y,m){return getSalary(y,m)+(isBonus(m)?BONUS:0);}
+function getIncome(y,m){
+  var sal=getSalary(y,m);
+  var bonusAmt=S.bonuses&&S.bonuses[mkey(y,m)]||0;
+  // ボーナスが未入力の月はBONUSデフォルト値は使わない（0扱い）
+  if(bonusAmt>0) return sal+bonusAmt;
+  return sal;
+}
 function getEntries(y,m){return S.entries[mkey(y,m)]||[];}
 function setEntries(arr){S.entries[curKey()]=arr;}
 function getUtility(y,m){return S.utilities[mkey(y,m)]||null;}
@@ -742,7 +783,19 @@ function render(){
   sBal.className='stat-value '+(balance>=0?'positive':'negative');
 
   var acc=calcAccum(y,m);
-  document.getElementById('s-debt-sub').textContent=acc.debt>0?'返済残 '+fmtM(acc.debt):'返済完了！';
+  document.getElementById('s-assets-big').textContent=fmt(Math.round(acc.assets));
+  var debtBig=document.getElementById('s-debt-big');
+  var debtLabel=document.getElementById('s-debt-label');
+  if(acc.debt>0){
+    debtBig.textContent=fmt(acc.debt);
+    debtLabel.textContent='返済残';
+    debtBig.style.color='rgba(255,255,255,.85)';
+  } else {
+    debtBig.textContent='返済完了！';
+    debtLabel.textContent='';
+    debtBig.style.color='#9FE1CB';
+  }
+  document.getElementById('s-debt-sub').textContent=acc.debt>0?'返済残 '+fmt(acc.debt):'返済完了！';
 
   var pct=Math.min(Math.round(varT/VARIABLE_BUDGET*100),100);
   document.getElementById('v-total-lbl').textContent=fmt(varT);
@@ -879,13 +932,10 @@ function renderFixed(y,m){
     } else {
       amtDisplay='<span class="famt" onclick="editFixedAmount('+f.id+')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="タップで金額変更">'+fmt(f.amount)+'</span>';
     }
-    var isFirst=idx===0;
-    var isLast=idx===S.fixedItems.length-1;
-    html+='<div class="fixed-item'+dimmed+'">'
-      +'<span style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">'
-      +'<button onclick="moveFixed('+idx+',-1)" style="background:none;border:none;cursor:pointer;color:'+(isFirst?'var(--text-faint)':'var(--text-muted)')+';font-size:11px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent" '+(isFirst?'disabled':'')+'>▲</button>'
-      +'<button onclick="moveFixed('+idx+',1)" style="background:none;border:none;cursor:pointer;color:'+(isLast?'var(--text-faint)':'var(--text-muted)')+';font-size:11px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent" '+(isLast?'disabled':'')+'>▼</button>'
-      +'</span>'
+    html+='<div class="fixed-item'+dimmed+'" draggable="true" data-idx="'+idx+'" '
+      +'ondragstart="fixedDragStart(event,'+idx+')" ondragover="fixedDragOver(event,'+idx+')" ondrop="fixedDrop(event,'+idx+')" ondragend="fixedDragEnd()" '
+      +'ontouchstart="fixedTouchStart(event,'+idx+')" ontouchmove="fixedTouchMove(event)" ontouchend="fixedTouchEnd(event,'+idx+')">'
+      +'<span class="drag-handle" title="ドラッグで並び替え">⠿</span>'
       +'<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'
       +'<span class="fname">'+f.name+'</span>'
       +amtDisplay
@@ -1009,6 +1059,8 @@ function renderFixed(y,m){
 
   var stEl=document.getElementById('utility-status');
   var regEl=document.getElementById('utility-registered');
+  var usd=document.getElementById('utility-saved-display');
+  var usv=document.getElementById('utility-saved-val');
   if(util){
     var total=util.water+util.gas+util.elec;
     stEl.textContent='登録済 '+fmt(total);stEl.style.color='var(--accent-text)';
@@ -1017,9 +1069,11 @@ function renderFixed(y,m){
     document.getElementById('u-water').value=util.water||'';
     document.getElementById('u-gas').value=util.gas||'';
     document.getElementById('u-elec').value=util.elec||'';
+    if(usd&&usv){ usd.style.display='block'; usv.textContent='水道 '+fmt(util.water)+' ／ ガス '+fmt(util.gas)+' ／ 電気 '+fmt(util.elec)+' ／ 計 '+fmt(total); }
   } else {
     stEl.textContent='未登録（概算15,000円）';stEl.style.color='var(--text-faint)';
     regEl.style.display='none';
+    if(usd) usd.style.display='none';
   }
 }
 
@@ -1078,13 +1132,28 @@ function moveFixed(idx, dir){
   var items=S.fixedItems;
   var newIdx=idx+dir;
   if(newIdx<0||newIdx>=items.length) return;
-  var tmp=items[idx];
-  items[idx]=items[newIdx];
-  items[newIdx]=tmp;
-  S.fixedItems=items;
-  save();render();
+  var tmp=items[idx]; items[idx]=items[newIdx]; items[newIdx]=tmp;
+  S.fixedItems=items; save();render();
 }
-function dragStart(e,idx){dragSrcIdx=idx;e.dataTransfer.effectAllowed='move';}
+// PC ドラッグ
+var _fdSrc=-1;
+function fixedDragStart(e,idx){ _fdSrc=idx; e.dataTransfer.effectAllowed='move'; e.currentTarget.style.opacity='.4'; }
+function fixedDragOver(e,idx){ e.preventDefault(); e.dataTransfer.dropEffect='move'; }
+function fixedDrop(e,idx){ e.preventDefault(); if(_fdSrc<0||_fdSrc===idx) return; var items=S.fixedItems; var m=items.splice(_fdSrc,1)[0]; items.splice(idx,0,m); S.fixedItems=items; save();render(); }
+function fixedDragEnd(){ _fdSrc=-1; render(); }
+// iPhone タッチ
+var _ftSrc=-1, _ftStartY=0;
+function fixedTouchStart(e,idx){ _ftSrc=idx; _ftStartY=e.touches[0].clientY; }
+function fixedTouchMove(e){ e.preventDefault(); }
+function fixedTouchEnd(e,idx){
+  if(_ftSrc<0) return;
+  var dy=e.changedTouches[0].clientY-_ftStartY;
+  if(Math.abs(dy)<20){ _ftSrc=-1; return; }
+  var dir=dy>0?1:-1;
+  moveFixed(_ftSrc,dir);
+  _ftSrc=-1;
+}
+function dragStart(e,idx){_fdSrc=idx;e.dataTransfer.effectAllowed='move';}
 function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
 function dragDrop(e,idx){
   e.preventDefault();
@@ -1364,18 +1433,42 @@ function saveUtility(){
 
 function saveSalary(){
   var val=parseInt(document.getElementById('salary-input').value);
-  if(!val||val<=0){alert('金額を入力してください');return;}
-  S.salaries[curKey()]=val;save();render();
+  if(!val||val<=0){alert('給料を入力してください');return;}
+  S.salaries[curKey()]=val;
+  // ボーナス（7月・12月のみ）
+  var bonusEl=document.getElementById('bonus-input');
+  if(bonusEl&&isBonus(S.curM)){
+    var bval=parseInt(bonusEl.value)||0;
+    if(!S.bonuses) S.bonuses={};
+    if(bval>0) S.bonuses[curKey()]=bval;
+    bonusEl.value='';
+  }
   document.getElementById('salary-input').value='';
-  updateSalaryBadge();
-  alert(MN[S.curM]+'の給料を '+fmt(val)+' で保存しました ✓');
+  save();render();
+  alert(MN[S.curM]+'の給料を保存しました ✓');
 }
 
 function updateSalaryBadge(){
-  var badge=document.getElementById('salary-paid-badge');
-  if(!badge) return;
-  var hasSalary=S.salaries[curKey()]!=null;
-  badge.style.display=hasSalary?'block':'none';
+  // 給料入力済み表示
+  var sd=document.getElementById('salary-saved-display');
+  var sv=document.getElementById('salary-saved-val');
+  var sal=S.salaries[curKey()];
+  if(sd&&sv&&sal){
+    sd.style.display='block';
+    var bonusAmt=S.bonuses&&S.bonuses[curKey()]||0;
+    sv.textContent=fmt(sal)+(bonusAmt>0?' ＋ ボーナス '+fmt(bonusAmt):'');
+  } else if(sd){ sd.style.display='none'; }
+  // ボーナス入力済み表示
+  var bd=document.getElementById('bonus-saved-display');
+  var bv=document.getElementById('bonus-saved-val');
+  var bonusAmt2=S.bonuses&&S.bonuses[curKey()]||0;
+  if(bd&&bv){
+    bd.style.display=(isBonus(S.curM)&&bonusAmt2>0)?'block':'none';
+    if(bv) bv.textContent=fmt(bonusAmt2);
+  }
+  // ボーナス入力欄の表示（7月・12月のみ）
+  var bw=document.getElementById('bonus-input-wrap');
+  if(bw) bw.style.display=isBonus(S.curM)?'flex':'none';
 }
 
 function saveBalance(){
