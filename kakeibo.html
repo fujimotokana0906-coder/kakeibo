@@ -330,6 +330,12 @@ select{-webkit-appearance:auto;appearance:auto}
         <input type="number" id="f-amount" placeholder="金額" min="0" inputmode="numeric">
         <select id="f-type"><option value="fixed">固定費</option><option value="invest">積立</option><option value="repay">返済</option><option value="utility">光熱費</option></select>
       </div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:8px">
+        <select id="f-start" style="font-size:13px;padding:7px 8px"></select>
+        <span style="font-size:12px;color:var(--text-muted);text-align:center">〜</span>
+        <select id="f-end" style="font-size:13px;padding:7px 8px"></select>
+      </div>
+      <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">期間外の月は固定費から除外されます</div>
       <button class="btn btn-primary" style="width:100%" onclick="addFixed()">追加</button>
     </div>
     <div class="divider"></div>
@@ -658,9 +664,17 @@ function getBudgetBalance(f, y, m){
   return f.amount;
 }
 
+function isFixedActive(f,y,m){
+  var mk=mkey(y,m);
+  if(f.startMk&&mk<f.startMk) return false;
+  if(f.endMk&&mk>f.endMk) return false;
+  return true;
+}
+
 function getFixedTotal(y,m){
   var util=getUtility(y,m);
   var t=S.fixedItems.reduce(function(s,f){
+    if(!isFixedActive(f,y,m)) return s;
     if(f.isUtilityPlaceholder&&util) return s;
     if(f.type==='budget'||f.type==='budget-accordion'){
       if(f.travelBudget) return s; // 旅行予算は固定費合計から除外
@@ -828,6 +842,7 @@ function render(){
   renderCalendar(y,m);
   initDaySelect();
   renderCatSummary();
+  initFixedPeriodSelect();
 }
 
 function renderEntries(y,m){
@@ -892,7 +907,8 @@ function renderFixed(y,m){
   var tagClass={fixed:'tag-fixed',invest:'tag-invest',repay:'tag-repay',utility:'tag-utility',budget:'tag-budget','budget-accordion':'tag-budget',accordion:'tag-fixed'};
   var html='';
   S.fixedItems.forEach(function(f,idx){
-    var dimmed=f.isUtilityPlaceholder&&util?' dimmed':'';
+    var active=isFixedActive(f,y,m);
+    var dimmed=(f.isUtilityPlaceholder&&util)||!active?' dimmed':'';
     var amtDisplay='';
     if(f.type==='budget'||f.type==='budget-accordion'){
       var bal=getBudgetBalance(f,y,m);
@@ -934,7 +950,15 @@ function renderFixed(y,m){
       +'ontouchstart="fixedTouchStart(event,'+idx+')" ontouchmove="fixedTouchMove(event)" ontouchend="fixedTouchEnd(event,'+idx+')">'
       +'<span class="drag-handle" title="ドラッグで並び替え">⠿</span>'
       +'<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'
-      +'<span class="fname">'+f.name+'</span>'
+      +(function(){
+        var nm=f.name;
+        if(f.startMk||f.endMk){
+          var sl=f.startMk?f.startMk.slice(2).replace('-','/'):' ';
+          var el=f.endMk?f.endMk.slice(2).replace('-','/'):' ';
+          nm+='<span style="font-size:10px;color:var(--text-faint);margin-left:4px">('+sl+'〜'+el+')</span>';
+        }
+        return '<span class="fname">'+nm+'</span>';
+      })()
       +amtDisplay
       +'<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'
       +'</div>';
@@ -1392,10 +1416,35 @@ function addFixed(){
   var amount=parseInt(document.getElementById('f-amount').value);
   var type=document.getElementById('f-type').value;
   if(!name||!amount||amount<=0) return;
-  S.fixedItems.push({id:S.nextId++,name:name,amount:amount,type:type});
+  var startVal=document.getElementById('f-start').value;
+  var endVal=document.getElementById('f-end').value;
+  S.fixedItems.push({id:S.nextId++,name:name,amount:amount,type:type,
+    startMk:startVal||null, endMk:endVal||null});
   document.getElementById('f-name').value='';
   document.getElementById('f-amount').value='';
   save();render();
+}
+
+function initFixedPeriodSelect(){
+  var startEl=document.getElementById('f-start');
+  var endEl=document.getElementById('f-end');
+  if(!startEl||!endEl) return;
+  var opts='<option value="">開始月（任意）</option>';
+  var opts2='<option value="">終了月（任意）</option>';
+  var y=S.curY, m=S.curM;
+  // 前後2年分の月を生成
+  for(var i=-3;i<=24;i++){
+    var pm=m+i, py=y;
+    while(pm<0){pm+=12;py--;}
+    while(pm>11){pm-=12;py++;}
+    var mk=mkey(py,pm);
+    var label=py+'年'+(pm+1)+'月';
+    var sel=(i===0?' selected':'');
+    opts+='<option value="'+mk+'"'+sel+'>'+label+'</option>';
+    opts2+='<option value="'+mk+'"'+sel+'>'+label+'</option>';
+  }
+  startEl.innerHTML=opts;
+  endEl.innerHTML=opts2;
 }
 
 function delFixed(id){S.fixedItems=S.fixedItems.filter(function(f){return f.id!==id;});save();render();}
