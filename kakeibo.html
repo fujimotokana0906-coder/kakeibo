@@ -330,12 +330,18 @@ select{-webkit-appearance:auto;appearance:auto}
         <input type="number" id="f-amount" placeholder="金額" min="0" inputmode="numeric">
         <select id="f-type"><option value="fixed">固定費</option><option value="invest">積立</option><option value="repay">返済</option><option value="utility">光熱費</option></select>
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:8px">
+      <div style="margin-bottom:6px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="f-period-check" onchange="togglePeriodSelect()" style="width:16px;height:16px;accent-color:var(--accent)">
+          <span>表示期間を指定する</span>
+        </label>
+      </div>
+      <div id="f-period-wrap" style="display:none;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:8px">
         <select id="f-start" style="font-size:13px;padding:7px 8px"></select>
         <span style="font-size:12px;color:var(--text-muted);text-align:center">〜</span>
         <select id="f-end" style="font-size:13px;padding:7px 8px"></select>
       </div>
-      <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">期間外の月は固定費から除外されます</div>
+      <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">期間を指定すると、それ以外の月は表示・計算から除外されます</div>
       <button class="btn btn-primary" style="width:100%" onclick="addFixed()">追加</button>
     </div>
     <div class="divider"></div>
@@ -908,7 +914,8 @@ function renderFixed(y,m){
   var html='';
   S.fixedItems.forEach(function(f,idx){
     var active=isFixedActive(f,y,m);
-    var dimmed=(f.isUtilityPlaceholder&&util)||!active?' dimmed':'';
+    if(!active) return; // 期間外は非表示
+    var dimmed=(f.isUtilityPlaceholder&&util)?' dimmed':'';
     var amtDisplay='';
     if(f.type==='budget'||f.type==='budget-accordion'){
       var bal=getBudgetBalance(f,y,m);
@@ -945,20 +952,23 @@ function renderFixed(y,m){
     } else {
       amtDisplay='<span class="famt" onclick="editFixedAmount('+f.id+')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="タップで金額変更">'+fmt(f.amount)+'</span>';
     }
-    html+='<div class="fixed-item'+dimmed+'" draggable="true" data-idx="'+idx+'" '
-      +'ondragstart="fixedDragStart(event,'+idx+')" ondragover="fixedDragOver(event,'+idx+')" ondrop="fixedDrop(event,'+idx+')" ondragend="fixedDragEnd()" '
-      +'ontouchstart="fixedTouchStart(event,'+idx+')" ontouchmove="fixedTouchMove(event)" ontouchend="fixedTouchEnd(event,'+idx+')">'
-      +'<span class="drag-handle" title="ドラッグで並び替え">⠿</span>'
+    var isFirst=idx===0;
+    var isLast=idx===S.fixedItems.length-1;
+    html+='<div class="fixed-item'+dimmed+'">'
+      +'<span style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">'
+      +'<button onclick="moveFixed('+idx+',-1)" style="background:none;border:none;cursor:pointer;color:'+(isFirst?'var(--text-faint)':'var(--text-muted)')+';font-size:13px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent" '+(isFirst?'disabled':'')+' title="上に移動">▲</button>'
+      +'<button onclick="moveFixed('+idx+',1)" style="background:none;border:none;cursor:pointer;color:'+(isLast?'var(--text-faint)':'var(--text-muted)')+';font-size:13px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent" '+(isLast?'disabled':'')+' title="下に移動">▼</button>'
+      +'</span>'
       +'<span class="ftag '+(tagClass[f.type]||'tag-fixed')+'">'+(tagMap[f.type]||'固定費')+'</span>'
       +(function(){
-        var nm=f.name;
+        var _nm=f.name;
         if(f.startMk||f.endMk){
-          var sl=f.startMk?f.startMk.slice(2).replace('-','/'):' ';
-          var el=f.endMk?f.endMk.slice(2).replace('-','/'):' ';
-          nm+='<span style="font-size:10px;color:var(--text-faint);margin-left:4px">('+sl+'〜'+el+')</span>';
+          var _sl=f.startMk?f.startMk.slice(2).replace('-','/'):'';
+          var _el=f.endMk?f.endMk.slice(2).replace('-','/'):'';
+          _nm=_nm+'<span style="font-size:10px;color:var(--text-faint);margin-left:4px">('+_sl+'~'+_el+')</span>';
         }
-        return '<span class="fname">'+nm+'</span>';
-      })()
+        return '<span class="fname">'+_nm+'</span>';
+      }())
       +amtDisplay
       +'<button class="del-btn" onclick="delFixed('+f.id+')">×</button>'
       +'</div>';
@@ -1416,13 +1426,23 @@ function addFixed(){
   var amount=parseInt(document.getElementById('f-amount').value);
   var type=document.getElementById('f-type').value;
   if(!name||!amount||amount<=0) return;
-  var startVal=document.getElementById('f-start').value;
-  var endVal=document.getElementById('f-end').value;
+  var periodChecked=document.getElementById('f-period-check').checked;
+  var startVal=periodChecked?document.getElementById('f-start').value:null;
+  var endVal=periodChecked?document.getElementById('f-end').value:null;
   S.fixedItems.push({id:S.nextId++,name:name,amount:amount,type:type,
     startMk:startVal||null, endMk:endVal||null});
   document.getElementById('f-name').value='';
   document.getElementById('f-amount').value='';
+  document.getElementById('f-period-check').checked=false;
+  var wrap=document.getElementById('f-period-wrap');
+  if(wrap) wrap.style.display='none';
   save();render();
+}
+
+function togglePeriodSelect(){
+  var checked=document.getElementById('f-period-check').checked;
+  var wrap=document.getElementById('f-period-wrap');
+  if(wrap) wrap.style.display=checked?'grid':'none';
 }
 
 function initFixedPeriodSelect(){
@@ -1447,7 +1467,18 @@ function initFixedPeriodSelect(){
   endEl.innerHTML=opts2;
 }
 
-function delFixed(id){S.fixedItems=S.fixedItems.filter(function(f){return f.id!==id;});save();render();}
+function delFixed(id){
+  var f=S.fixedItems.filter(function(x){return x.id===id;})[0];
+  if(!f) return;
+  var choice=confirm(f.name+'を削除します。\n翌月以降も削除しますか?\nOK→完全削除 / キャンセル→今月で終了');
+  if(!choice){
+    f.endMk=mkey(S.curY,S.curM);
+    save();render();
+    return;
+  }
+  S.fixedItems=S.fixedItems.filter(function(x){return x.id!==id;});
+  save();render();
+}
 function editFixedAmount(id){
   var f=S.fixedItems.filter(function(x){return x.id===id;})[0];
   if(!f) return;
