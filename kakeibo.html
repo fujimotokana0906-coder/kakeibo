@@ -169,7 +169,7 @@ select{-webkit-appearance:auto;appearance:auto}
   <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <div style="font-size:11px;color:rgba(255,255,255,.7)">今月の貯金</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">55,000円</span></div>
+      <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">50,000円</span></div>
     </div>
     <div style="height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:4px">
       <div id="saving-bar" style="height:100%;border-radius:3px;transition:width .4s;background:rgba(255,255,255,.6);width:0%"></div>
@@ -913,8 +913,8 @@ function render(){
     var fukiLeft=FUKI_GOAL-fukiBalance;
     if(fukiLeft<=0){ fukiRemain.textContent='達成！'; }
     else {
-      var fukiMonths=Math.ceil(fukiLeft/35000);
-      fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月3.5万円ペース）';
+      var fukiMonths=Math.ceil(fukiLeft/30000);
+      fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月3万円ペース）';
     }
   }
 
@@ -938,7 +938,7 @@ function render(){
     }
   }
   // 貯金進捗
-  var SAVING_GOAL=S.savingGoal||55000;
+  var SAVING_GOAL=S.savingGoal||50000;
   var saving=income-fixedT-varT;
   var savingPct=Math.max(0,Math.min(Math.round(saving/SAVING_GOAL*100),100));
   var savingEl=document.getElementById('saving-amount');
