@@ -158,14 +158,26 @@ select{-webkit-appearance:auto;appearance:auto}
 </div>
 
 <!-- 資産合計 大表示 -->
-<div style="background:var(--accent);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-  <div>
-    <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計</div>
-    <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-assets-big">—</div>
+<div style="background:var(--accent);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+    <div>
+      <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計</div>
+      <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-assets-big">—</div>
+    </div>
   </div>
-  <div style="text-align:right">
-    <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px" id="s-debt-label">返済残</div>
-    <div style="font-family:var(--mono);font-size:15px;color:rgba(255,255,255,.85)" id="s-debt-big">—</div>
+  <!-- 貯金進捗 -->
+  <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+      <div style="font-size:11px;color:rgba(255,255,255,.7)">今月の貯金</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">40,000円</span></div>
+    </div>
+    <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:5px">
+      <div id="saving-bar" style="height:100%;border-radius:3px;transition:width .4s;background:#9FE1CB;width:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:#fff" id="saving-amount">—</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.7)" id="saving-pct">0%</div>
+    </div>
   </div>
 </div>
 
@@ -449,7 +461,14 @@ select{-webkit-appearance:auto;appearance:auto}
     </div>
 
     <div style="margin-bottom:20px">
-      <div class="card-title">給料の設定</div>
+      <div class="card-title">貯金目標（月額）</div>
+      <div style="display:flex;align-items:center;gap:8px;background:var(--blue-light);border:1px solid #A8C4E8;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--blue);flex-shrink:0">月の目標貯金額</span>
+        <input type="number" id="saving-goal-input" inputmode="numeric" placeholder="40000" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #A8C4E8;border-radius:0;padding:2px 4px;flex:1;color:var(--blue)">
+        <span style="font-size:12px;color:var(--blue)">円</span>
+      </div>
+      <button class="btn btn-primary" style="width:100%;background:var(--blue);border-color:var(--blue)" onclick="saveSavingGoal()">目標を保存</button>
+    </div>
       <!-- 合計金額表示（欄外） -->
       <div id="salary-saved-display" style="display:none;margin-bottom:10px">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">✓ 登録済み合計</div>
@@ -471,6 +490,41 @@ select{-webkit-appearance:auto;appearance:auto}
       </div>
       <button class="btn btn-primary" style="width:100%" onclick="saveSalary()">この月の給料を保存</button>
       <div style="font-size:11px;color:var(--text-faint);margin-top:6px">未設定の月は基本給 200,000円で計算</div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div class="card-title">請求額の入力（今月）</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">PayPay・楽天カードの請求合計を入力すると、家計簿との差異を確認できます</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px">
+          <span style="font-size:13px;flex:1">PayPay請求額</span>
+          <input type="number" id="billing-paypay" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right" oninput="updateBillingPreview()">
+          <span style="font-size:12px;color:var(--text-muted)">円</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px">
+          <span style="font-size:13px;flex:1">楽天カード請求額</span>
+          <input type="number" id="billing-rakuten" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right" oninput="updateBillingPreview()">
+          <span style="font-size:12px;color:var(--text-muted)">円</span>
+        </div>
+      </div>
+      <div id="billing-preview" style="display:none;padding:10px 12px;background:var(--surface2);border-radius:var(--r);margin-bottom:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--text-muted)">請求合計</span>
+          <span style="font-family:var(--mono)" id="billing-total-val">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--text-muted)">家計簿合計</span>
+          <span style="font-family:var(--mono)" id="billing-kakeibo-val">—</span>
+        </div>
+        <div style="height:1px;background:var(--border);margin:6px 0"></div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-weight:500">差異</span>
+          <span style="font-family:var(--mono);font-weight:700" id="billing-diff-val">—</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="billing-diff-note"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveBilling()">請求額を保存</button>
+      <div id="billing-saved-msg" style="display:none;margin-top:6px;font-size:12px;font-family:var(--mono)"></div>
     </div>
 
     <div style="margin-bottom:20px">
@@ -592,6 +646,7 @@ function loadState(){
       }
       if(!state.bankBalances) state.bankBalances={};
       if(!state.bonuses) state.bonuses={};
+      if(!state.billings) state.billings={};
       if(!state.balanceAdj) state.balanceAdj={};
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
@@ -621,7 +676,7 @@ function loadState(){
     entries: imp.entries || {},
     salaries: imp.salaries || {},
     utilities: imp.utilities || {},
-    bankBalances: {},      // {mkey: {rakuten, yucho}}  月末実際在高
+    billings: {},          // {mkey: {paypay, rakuten}}
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
     bonuses: {},           // {mkey: ボーナス額}
   };
@@ -806,17 +861,20 @@ function render(){
 
   var acc=calcAccum(y,m);
   document.getElementById('s-assets-big').textContent=fmt(Math.round(acc.assets));
-  var debtBig=document.getElementById('s-debt-big');
-  var debtLabel=document.getElementById('s-debt-label');
-  if(acc.debt>0){
-    debtBig.textContent=fmt(acc.debt);
-    debtLabel.textContent='返済残';
-    debtBig.style.color='rgba(255,255,255,.85)';
-  } else {
-    debtBig.textContent='返済完了！';
-    debtLabel.textContent='';
-    debtBig.style.color='#9FE1CB';
-  }
+  // 貯金進捗
+  var SAVING_GOAL = S.savingGoal || 40000;
+  var saving = income - fixedT - varT;
+  var savingPct = Math.max(0, Math.min(Math.round(saving / SAVING_GOAL * 100), 100));
+  var savingEl = document.getElementById('saving-amount');
+  var savingBar = document.getElementById('saving-bar');
+  var savingPctEl = document.getElementById('saving-pct');
+  var savingGoalLabel = document.getElementById('saving-goal-label');
+  if(savingEl) savingEl.textContent = (saving >= 0 ? '+' : '') + fmt(saving);
+  if(savingEl) savingEl.style.color = saving >= SAVING_GOAL ? '#9FE1CB' : saving >= 0 ? '#fff' : '#FCA5A5';
+  if(savingBar) savingBar.style.width = savingPct + '%';
+  if(savingBar) savingBar.style.background = saving >= SAVING_GOAL ? '#9FE1CB' : saving >= 0 ? 'rgba(255,255,255,.6)' : '#FCA5A5';
+  if(savingPctEl) savingPctEl.textContent = savingPct + '%';
+  if(savingGoalLabel) savingGoalLabel.textContent = fmt(SAVING_GOAL);
   document.getElementById('s-debt-sub').textContent=acc.debt>0?'返済残 '+fmt(acc.debt):'返済完了！';
 
   var pct=Math.min(Math.round(varT/VARIABLE_BUDGET*100),100);
@@ -854,6 +912,7 @@ function render(){
   initDaySelect();
   renderCatSummary();
   initFixedPeriodSelect();
+  renderBillingSettings();
 }
 
 function renderEntries(y,m){
@@ -1511,6 +1570,15 @@ function saveUtility(){
   S.utilities[curKey()]={water:water,gas:gas,elec:elec};save();render();
 }
 
+function saveSavingGoal(){
+  var val=parseInt(document.getElementById('saving-goal-input').value);
+  if(!val||val<=0){alert('金額を入力してください');return;}
+  S.savingGoal=val;
+  document.getElementById('saving-goal-input').value='';
+  save();render();
+  alert('貯金目標を '+fmt(val)+' に設定しました');
+}
+
 function saveSalary(){
   var val=parseInt(document.getElementById('salary-input').value);
   if(!val||val<=0){alert('給料を入力してください');return;}
@@ -1541,6 +1609,60 @@ function updateSalaryBadge(){
   // ボーナス入力欄の表示（7月・12月のみ）
   var bw=document.getElementById('bonus-input-wrap');
   if(bw) bw.style.display=isBonus(S.curM)?'flex':'none';
+}
+
+function updateBillingPreview(){
+  var paypay=parseInt(document.getElementById('billing-paypay').value)||0;
+  var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
+  var billingTotal=paypay+rakuten;
+  if(billingTotal===0){document.getElementById('billing-preview').style.display='none';return;}
+  var kakeiboTotal=getFixedTotal(S.curY,S.curM)+getVariableTotal(S.curY,S.curM);
+  var diff=billingTotal-kakeiboTotal;
+  document.getElementById('billing-preview').style.display='block';
+  document.getElementById('billing-total-val').textContent=fmt(billingTotal);
+  document.getElementById('billing-kakeibo-val').textContent=fmt(kakeiboTotal);
+  var diffEl=document.getElementById('billing-diff-val');
+  var noteEl=document.getElementById('billing-diff-note');
+  diffEl.textContent=(diff>=0?'+':'')+fmt(diff);
+  diffEl.style.color=Math.abs(diff)<1000?'var(--accent)':diff>0?'var(--danger)':'var(--blue)';
+  noteEl.textContent=diff>0?'請求の方が多い（家計簿に未記録の支出がある可能性）':diff<0?'家計簿の方が多い（未請求の支出がある可能性）':'完全一致！';
+}
+
+function saveBilling(){
+  var paypay=parseInt(document.getElementById('billing-paypay').value)||0;
+  var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
+  if(paypay===0&&rakuten===0){alert('金額を入力してください');return;}
+  if(!S.billings) S.billings={};
+  S.billings[curKey()]={paypay:paypay,rakuten:rakuten};
+  save();
+  var billingTotal=paypay+rakuten;
+  var kakeiboTotal=getFixedTotal(S.curY,S.curM)+getVariableTotal(S.curY,S.curM);
+  var diff=billingTotal-kakeiboTotal;
+  var msg=document.getElementById('billing-saved-msg');
+  msg.style.display='block';
+  msg.textContent='保存済 PayPay '+fmt(paypay)+' / 楽天 '+fmt(rakuten)+' / 差異 '+(diff>=0?'+':'')+fmt(diff);
+  msg.style.color=Math.abs(diff)<1000?'var(--accent-text)':diff>0?'var(--danger)':'var(--blue)';
+}
+
+function renderBillingSettings(){
+  var bl=S.billings&&S.billings[curKey()];
+  var msg=document.getElementById('billing-saved-msg');
+  if(bl){
+    document.getElementById('billing-paypay').value=bl.paypay||'';
+    document.getElementById('billing-rakuten').value=bl.rakuten||'';
+    if(msg){
+      var billingTotal=(bl.paypay||0)+(bl.rakuten||0);
+      var kakeiboTotal=getFixedTotal(S.curY,S.curM)+getVariableTotal(S.curY,S.curM);
+      var diff=billingTotal-kakeiboTotal;
+      msg.style.display='block';
+      msg.textContent='保存済 PayPay '+fmt(bl.paypay||0)+' / 楽天 '+fmt(bl.rakuten||0)+' / 差異 '+(diff>=0?'+':'')+fmt(diff);
+      msg.style.color=Math.abs(diff)<1000?'var(--accent-text)':diff>0?'var(--danger)':'var(--blue)';
+    }
+    updateBillingPreview();
+  } else {
+    if(msg) msg.style.display='none';
+    document.getElementById('billing-preview').style.display='none';
+  }
 }
 
 function saveBalance(){
