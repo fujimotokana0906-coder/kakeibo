@@ -483,38 +483,44 @@ select{-webkit-appearance:auto;appearance:auto}
     </div>
 
     <div style="margin-bottom:20px">
-      <div class="card-title">請求額の入力（今月）</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">PayPay・楽天カードの請求合計を入力すると、家計簿との差異を確認できます</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px">
-          <span style="font-size:13px;flex:1">PayPay請求額</span>
-          <input type="number" id="billing-paypay" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right" oninput="updateBillingPreview()">
-          <span style="font-size:12px;color:var(--text-muted)">円</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px">
-          <span style="font-size:13px;flex:1">楽天カード請求額</span>
-          <input type="number" id="billing-rakuten" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right" oninput="updateBillingPreview()">
-          <span style="font-size:12px;color:var(--text-muted)">円</span>
-        </div>
+      <div class="card-title">今月の請求額入力</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">実際の請求額と家計簿の差異を確認できます</div>
+      <!-- 家賃（固定表示） -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px;margin-bottom:6px">
+        <span style="font-size:13px;flex:1">家賃（ゆうちょ自動引落）</span>
+        <span style="font-family:var(--mono);font-size:14px;color:var(--text-muted)">42,330円</span>
       </div>
-      <div id="billing-preview" style="display:none;padding:10px 12px;background:var(--surface2);border-radius:var(--r);margin-bottom:8px;font-size:13px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="color:var(--text-muted)">請求合計</span>
-          <span style="font-family:var(--mono)" id="billing-total-val">—</span>
+      <!-- PayPay請求額 -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px;margin-bottom:6px">
+        <span style="font-size:13px;flex:1">PayPay請求額</span>
+        <input type="number" id="billing-paypay" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
+        <span style="font-size:12px;color:var(--text-muted)">円</span>
+      </div>
+      <!-- 楽天カード請求額 -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px;margin-bottom:10px">
+        <span style="font-size:13px;flex:1">楽天カード請求額</span>
+        <input type="number" id="billing-rakuten" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
+        <span style="font-size:12px;color:var(--text-muted)">円</span>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveBilling()">請求額を保存</button>
+      <!-- 差異表示 -->
+      <div id="billing-diff-wrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--r)">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">家計簿との比較</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>実際の請求合計</span>
+          <span style="font-family:var(--mono)" id="billing-total-display">—</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="color:var(--text-muted)">家計簿合計</span>
-          <span style="font-family:var(--mono)" id="billing-kakeibo-val">—</span>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>家計簿の合計</span>
+          <span style="font-family:var(--mono)" id="billing-kakeibo-display">—</span>
         </div>
         <div style="height:1px;background:var(--border);margin:6px 0"></div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-weight:500">差異</span>
-          <span style="font-family:var(--mono);font-weight:700" id="billing-diff-val">—</span>
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500">
+          <span>差異</span>
+          <span style="font-family:var(--mono)" id="billing-diff-display">—</span>
         </div>
         <div style="font-size:11px;color:var(--text-faint);margin-top:4px" id="billing-diff-note"></div>
       </div>
-      <button class="btn btn-primary" style="width:100%" onclick="saveBilling()">請求額を保存</button>
-      <div id="billing-saved-msg" style="display:none;margin-top:6px;font-size:12px;font-family:var(--mono)"></div>
     </div>
 
     <div style="margin-bottom:20px">
@@ -637,6 +643,7 @@ function loadState(){
       if(!state.bankBalances) state.bankBalances={};
       if(!state.bonuses) state.bonuses={};
       if(!state.billings) state.billings={};
+      if(!state.billings) state.billings={};
       if(!state.balanceAdj) state.balanceAdj={};
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
@@ -669,6 +676,7 @@ function loadState(){
     billings: {},          // {mkey: {paypay, rakuten}}
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
     bonuses: {},           // {mkey: ボーナス額}
+    billings: {},          // {mkey: {paypay, rakuten}}
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
@@ -863,6 +871,7 @@ function render(){
   if(savingBar){savingBar.style.width=savingPct+'%';savingBar.style.background=saving>=SAVING_GOAL?'#9FE1CB':saving>=0?'rgba(255,255,255,.6)':'#FCA5A5';}
   if(savingPctEl) savingPctEl.textContent=savingPct+'%';
   if(savingGoalLabel) savingGoalLabel.textContent=fmt(SAVING_GOAL);
+  updateBillingDisplay();
 
 
 
@@ -901,7 +910,7 @@ function render(){
   initDaySelect();
   renderCatSummary();
   initFixedPeriodSelect();
-  renderBillingSettings();
+  updateBillingDisplay();
 }
 
 function renderEntries(y,m){
@@ -1559,6 +1568,48 @@ function saveUtility(){
   S.utilities[curKey()]={water:water,gas:gas,elec:elec};save();render();
 }
 
+function saveBilling(){
+  var paypay=parseInt(document.getElementById('billing-paypay').value)||0;
+  var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
+  if(paypay===0&&rakuten===0){alert('請求額を入力してください');return;}
+  if(!S.billings) S.billings={};
+  S.billings[curKey()]={paypay:paypay,rakuten:rakuten};
+  save();
+  updateBillingDisplay();
+  alert(MN[S.curM]+'の請求額を保存しました');
+}
+
+function updateBillingDisplay(){
+  var y=S.curY,m=S.curM;
+  var bk=S.billings&&S.billings[curKey()];
+  var wrap=document.getElementById('billing-diff-wrap');
+  if(!wrap) return;
+  if(bk){
+    var el1=document.getElementById('billing-paypay');
+    var el2=document.getElementById('billing-rakuten');
+    if(el1) el1.value=bk.paypay||'';
+    if(el2) el2.value=bk.rakuten||'';
+    var YACHIN=42330;
+    var billingTotal=(bk.paypay||0)+(bk.rakuten||0)+YACHIN;
+    var kakeiboTotal=getFixedTotal(y,m)+getVariableTotal(y,m);
+    var diff=billingTotal-kakeiboTotal;
+    wrap.style.display='block';
+    document.getElementById('billing-total-display').textContent=fmt(billingTotal);
+    document.getElementById('billing-kakeibo-display').textContent=fmt(kakeiboTotal);
+    var diffEl=document.getElementById('billing-diff-display');
+    diffEl.textContent=(diff>=0?'+':'')+fmt(diff);
+    diffEl.style.color=Math.abs(diff)<1000?'var(--accent)':diff>0?'var(--danger)':'var(--blue)';
+    var noteEl=document.getElementById('billing-diff-note');
+    if(noteEl){
+      if(Math.abs(diff)<1000) noteEl.textContent='ほぼ一致しています';
+      else if(diff>0) noteEl.textContent='請求額が家計簿より多いです（未記録の支出がある可能性）';
+      else noteEl.textContent='家計簿が請求額より多いです（重複入力の可能性）';
+    }
+  } else {
+    wrap.style.display='none';
+  }
+}
+
 function saveSalary(){
   var val=parseInt(document.getElementById('salary-input').value);
   if(!val||val<=0){alert('給料を入力してください');return;}
@@ -1589,60 +1640,6 @@ function updateSalaryBadge(){
   // ボーナス入力欄の表示（7月・12月のみ）
   var bw=document.getElementById('bonus-input-wrap');
   if(bw) bw.style.display=isBonus(S.curM)?'flex':'none';
-}
-
-function updateBillingPreview(){
-  var paypay=parseInt(document.getElementById('billing-paypay').value)||0;
-  var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
-  var billingTotal=paypay+rakuten;
-  if(billingTotal===0){document.getElementById('billing-preview').style.display='none';return;}
-  var kakeiboTotal=getFixedTotal(S.curY,S.curM)+getVariableTotal(S.curY,S.curM);
-  var diff=billingTotal-kakeiboTotal;
-  document.getElementById('billing-preview').style.display='block';
-  document.getElementById('billing-total-val').textContent=fmt(billingTotal);
-  document.getElementById('billing-kakeibo-val').textContent=fmt(kakeiboTotal);
-  var diffEl=document.getElementById('billing-diff-val');
-  var noteEl=document.getElementById('billing-diff-note');
-  diffEl.textContent=(diff>=0?'+':'')+fmt(diff);
-  diffEl.style.color=Math.abs(diff)<1000?'var(--accent)':diff>0?'var(--danger)':'var(--blue)';
-  noteEl.textContent=diff>0?'請求の方が多い（家計簿に未記録の支出がある可能性）':diff<0?'家計簿の方が多い（未請求の支出がある可能性）':'完全一致！';
-}
-
-function saveBilling(){
-  var paypay=parseInt(document.getElementById('billing-paypay').value)||0;
-  var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
-  if(paypay===0&&rakuten===0){alert('金額を入力してください');return;}
-  if(!S.billings) S.billings={};
-  S.billings[curKey()]={paypay:paypay,rakuten:rakuten};
-  save();
-  var billingTotal=paypay+rakuten;
-  var kakeiboTotal=getFixedTotal(S.curY,S.curM)+getVariableTotal(S.curY,S.curM);
-  var diff=billingTotal-kakeiboTotal;
-  var msg=document.getElementById('billing-saved-msg');
-  msg.style.display='block';
-  msg.textContent='保存済 PayPay '+fmt(paypay)+' / 楽天 '+fmt(rakuten)+' / 差異 '+(diff>=0?'+':'')+fmt(diff);
-  msg.style.color=Math.abs(diff)<1000?'var(--accent-text)':diff>0?'var(--danger)':'var(--blue)';
-}
-
-function renderBillingSettings(){
-  var bl=S.billings&&S.billings[curKey()];
-  var msg=document.getElementById('billing-saved-msg');
-  if(bl){
-    document.getElementById('billing-paypay').value=bl.paypay||'';
-    document.getElementById('billing-rakuten').value=bl.rakuten||'';
-    if(msg){
-      var billingTotal=(bl.paypay||0)+(bl.rakuten||0);
-      var kakeiboTotal=getFixedTotal(S.curY,S.curM)+getVariableTotal(S.curY,S.curM);
-      var diff=billingTotal-kakeiboTotal;
-      msg.style.display='block';
-      msg.textContent='保存済 PayPay '+fmt(bl.paypay||0)+' / 楽天 '+fmt(bl.rakuten||0)+' / 差異 '+(diff>=0?'+':'')+fmt(diff);
-      msg.style.color=Math.abs(diff)<1000?'var(--accent-text)':diff>0?'var(--danger)':'var(--blue)';
-    }
-    updateBillingPreview();
-  } else {
-    if(msg) msg.style.display='none';
-    document.getElementById('billing-preview').style.display='none';
-  }
 }
 
 function saveBalance(){
