@@ -159,20 +159,23 @@ select{-webkit-appearance:auto;appearance:auto}
 
 <!-- 資産合計 大表示 -->
 <div style="background:var(--accent);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px">
-  <div style="margin-bottom:12px">
-    <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計</div>
+  <!-- 資産合計 -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計（実際在高）</div>
     <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-assets-big">—</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:4px;font-family:var(--mono)" id="s-assets-detail">楽天 — ／ ゆうちょ —</div>
   </div>
+  <!-- 今月の貯金進捗（緑カード内） -->
   <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <div style="font-size:11px;color:rgba(255,255,255,.7)">今月の貯金</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">40,000円</span></div>
+      <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">55,000円</span></div>
     </div>
-    <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:5px">
+    <div style="height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:4px">
       <div id="saving-bar" style="height:100%;border-radius:3px;transition:width .4s;background:rgba(255,255,255,.6);width:0%"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:#fff" id="saving-amount">—</div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:#fff" id="saving-amount">—</div>
       <div style="font-size:11px;color:rgba(255,255,255,.7)" id="saving-pct">0%</div>
     </div>
   </div>
@@ -353,21 +356,6 @@ select{-webkit-appearance:auto;appearance:auto}
       <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">期間を指定すると、それ以外の月は表示・計算から除外されます</div>
       <button class="btn btn-primary" style="width:100%" onclick="addFixed()">追加</button>
     </div>
-    <div class="divider"></div>
-    <div style="margin-bottom:10px">
-      <div class="section-sub">NISA年間進捗</div>
-      <div class="pbar" style="height:7px"><div class="pfill fill-ok" id="nisa-fill" style="width:0%"></div></div>
-      <div class="plabel"><span id="nisa-used">0円</span><span>年間上限 1,200,000円</span></div>
-    </div>
-    <div>
-      <div class="section-sub">親への返済残高</div>
-      <div style="display:flex;align-items:baseline;gap:6px">
-        <span style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--purple)" id="debt-display">—</span>
-        <span style="font-size:11px;color:var(--text-faint)">/ 661,000円</span>
-      </div>
-      <div class="pbar" style="margin-top:4px"><div class="pfill" id="debt-fill" style="width:100%;background:var(--purple)"></div></div>
-      <div class="plabel"><span id="debt-pct"></span><span id="debt-months"></span></div>
-    </div>
   </div>
 </div>
 
@@ -387,12 +375,43 @@ select{-webkit-appearance:auto;appearance:auto}
 <!-- グラフ -->
 <div id="panel-graph" class="panel">
   <div class="card">
-    <div class="card-title">資産合計の推移</div>
+    <div class="card-title">資産合計の推移（月末実際在高）</div>
     <div class="chart-wrap"><canvas id="chart-assets"></canvas></div>
   </div>
+
+  <!-- 貯金目標バー -->
   <div class="card">
-    <div class="card-title">月別支出の推移</div>
-    <div class="chart-wrap"><canvas id="chart-expense"></canvas></div>
+    <div class="card-title">貯金目標の進捗</div>
+    <!-- ふき貯金 -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:13px;font-weight:500">🐕 ふき貯金</span>
+        <span style="font-size:11px;color:var(--text-muted)">目標 800,000円（2028年3月）</span>
+      </div>
+      <div class="pbar" style="height:8px">
+        <div class="pfill fill-ok" id="fuki-bar" style="width:0%"></div>
+      </div>
+      <div class="plabel" style="margin-top:4px">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:500" id="fuki-amount">—</span>
+        <span id="fuki-pct">0%</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:2px" id="fuki-remain"></div>
+    </div>
+    <!-- 親への返済 -->
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:13px;font-weight:500">💴 親への返済</span>
+        <span style="font-size:11px;color:var(--text-muted)">目標 661,000円</span>
+      </div>
+      <div class="pbar" style="height:8px">
+        <div class="pfill" id="repay-bar" style="width:0%;background:#F59E0B"></div>
+      </div>
+      <div class="plabel" style="margin-top:4px">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:500" id="repay-amount">—</span>
+        <span id="repay-pct">0%</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:2px" id="repay-remain"></div>
+    </div>
   </div>
 </div>
 </div>
@@ -643,7 +662,11 @@ function loadState(){
       if(!state.bankBalances) state.bankBalances={};
       if(!state.bonuses) state.bonuses={};
       if(!state.billings) state.billings={};
+      if(state.fukiBalance===undefined) state.fukiBalance=150000;
+      if(state.repayBalance===undefined) state.repayBalance=0;
       if(!state.billings) state.billings={};
+      if(state.fukiBalance===undefined) state.fukiBalance=150000;
+      if(state.repayBalance===undefined) state.repayBalance=0;
       if(!state.balanceAdj) state.balanceAdj={};
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
@@ -674,9 +697,13 @@ function loadState(){
     salaries: imp.salaries || {},
     utilities: imp.utilities || {},
     billings: {},          // {mkey: {paypay, rakuten}}
+    fukiBalance: 150000,   // ふき貯金の現在残高（初期15万）
+    repayBalance: 0,       // 親への返済の現在残高（初期0）
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
     bonuses: {},           // {mkey: ボーナス額}
     billings: {},          // {mkey: {paypay, rakuten}}
+    fukiBalance: 150000,   // ふき貯金の現在残高（初期15万）
+    repayBalance: 0,       // 親への返済の現在残高（初期0）
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
@@ -840,17 +867,13 @@ function render(){
   // 振込済バッジ
   updateSalaryBadge();
 
-  // 在高入力の既存値を表示
-  var bk=S.bankBalances&&S.bankBalances[curKey()];
-  if(bk){
-    document.getElementById('balance-rakuten').value=bk.rakuten||'';
-    document.getElementById('balance-yucho').value=bk.yucho||'';
+  // 在高登録済みメッセージ表示
+  var bk2=S.bankBalances&&S.bankBalances[curKey()];
+  if(bk2){
     var msg=document.getElementById('balance-saved-msg');
     var adj=S.balanceAdj&&S.balanceAdj[curKey()]||0;
     var adjStr=adj>=0?'+'+fmt(adj):'-'+fmt(Math.abs(adj));
-    msg.textContent='登録済: 楽天'+fmt(bk.rakuten||0)+' / ゆうちょ'+fmt(bk.yucho||0)+' / 差異'+adjStr;
-    msg.style.color=adj>=0?'var(--accent-text)':'var(--danger)';
-    msg.style.display='block';
+    if(msg){msg.textContent='登録済: 楽天'+fmt(bk2.rakuten||0)+' / ゆうちょ'+fmt(bk2.yucho||0)+' / 差異'+adjStr;msg.style.color=adj>=0?'var(--accent-text)':'var(--danger)';msg.style.display='block';}
   }
 
   var sBal=document.getElementById('s-bal');
@@ -858,9 +881,57 @@ function render(){
   sBal.className='stat-value '+(balance>=0?'positive':'negative');
 
   var acc=calcAccum(y,m);
-  document.getElementById('s-assets-big').textContent=fmt(Math.round(acc.assets));
+  // 資産合計：月末実際在高を優先表示
+  var bkData=S.bankBalances&&S.bankBalances[curKey()];
+  var displayAssets=bkData?bkData.total:Math.round(acc.assets);
+  document.getElementById('s-assets-big').textContent=fmt(displayAssets);
+  var detailEl=document.getElementById('s-assets-detail');
+  if(detailEl){
+    if(bkData) detailEl.textContent='楽天 '+fmt(bkData.rakuten||0)+' ／ ゆうちょ '+fmt(bkData.yucho||0);
+    else detailEl.textContent='月末在高未登録（概算値）';
+  }
+
+  // ふき貯金バー
+  var FUKI_GOAL=800000;
+  var fukiBalance=S.fukiBalance||0;
+  var fukiPct=Math.min(Math.round(fukiBalance/FUKI_GOAL*100),100);
+  var fukiBar=document.getElementById('fuki-bar');
+  var fukiAmt=document.getElementById('fuki-amount');
+  var fukiPctEl=document.getElementById('fuki-pct');
+  var fukiRemain=document.getElementById('fuki-remain');
+  if(fukiBar) fukiBar.style.width=fukiPct+'%';
+  if(fukiAmt) fukiAmt.textContent=fmt(fukiBalance)+' / '+fmt(FUKI_GOAL);
+  if(fukiPctEl) fukiPctEl.textContent=fukiPct+'%';
+  if(fukiRemain){
+    var fukiLeft=FUKI_GOAL-fukiBalance;
+    if(fukiLeft<=0){ fukiRemain.textContent='達成！'; }
+    else {
+      var fukiMonths=Math.ceil(fukiLeft/35000);
+      fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月3.5万円ペース）';
+    }
+  }
+
+  // 親への返済バー
+  var REPAY_GOAL=661000;
+  var repayBalance=S.repayBalance||0;
+  var repayPct=Math.min(Math.round(repayBalance/REPAY_GOAL*100),100);
+  var repayBar=document.getElementById('repay-bar');
+  var repayAmt=document.getElementById('repay-amount');
+  var repayPctEl=document.getElementById('repay-pct');
+  var repayRemain=document.getElementById('repay-remain');
+  if(repayBar) repayBar.style.width=repayPct+'%';
+  if(repayAmt) repayAmt.textContent=fmt(repayBalance)+' / '+fmt(REPAY_GOAL);
+  if(repayPctEl) repayPctEl.textContent=repayPct+'%';
+  if(repayRemain){
+    var repayLeft=REPAY_GOAL-repayBalance;
+    if(repayLeft<=0){ repayRemain.textContent='達成！'; }
+    else {
+      var repayMonths=Math.ceil(repayLeft/20000);
+      repayRemain.textContent='残り '+fmt(repayLeft)+' / あと約'+repayMonths+'ヶ月（月2万円ペース）';
+    }
+  }
   // 貯金進捗
-  var SAVING_GOAL=S.savingGoal||40000;
+  var SAVING_GOAL=S.savingGoal||55000;
   var saving=income-fixedT-varT;
   var savingPct=Math.max(0,Math.min(Math.round(saving/SAVING_GOAL*100),100));
   var savingEl=document.getElementById('saving-amount');
@@ -895,16 +966,6 @@ function render(){
 
   renderEntries(y,m);
   renderFixed(y,m);
-
-  var np=Math.min(Math.round(acc.nisa/1200000*100),100);
-  document.getElementById('nisa-fill').style.width=np+'%';
-  document.getElementById('nisa-used').textContent='積立累計 '+fmtM(acc.nisa);
-  document.getElementById('debt-display').textContent=fmtM(acc.debt);
-  var dp=Math.round((1-acc.debt/INITIAL_DEBT)*100);
-  document.getElementById('debt-fill').style.width=Math.max(acc.debt/INITIAL_DEBT*100,0)+'%';
-  document.getElementById('debt-pct').textContent='返済済み '+dp+'%';
-  var rm=S.fixedItems.filter(function(f){return f.type==='repay';}).reduce(function(s,f){return s+f.amount;},0);
-  document.getElementById('debt-months').textContent=acc.debt<=0?'完済':rm>0?'あと約'+Math.ceil(acc.debt/rm)+'ヶ月':'';
 
   renderCalendar(y,m);
   initDaySelect();
@@ -1159,9 +1220,6 @@ function renderFixed(y,m){
     stEl.textContent='登録済 '+fmt(total);stEl.style.color='var(--accent-text)';
     regEl.style.display='block';
     regEl.textContent='水道 '+fmt(util.water)+' ／ ガス '+fmt(util.gas)+' ／ 電気 '+fmt(util.elec);
-    document.getElementById('u-water').value=util.water||'';
-    document.getElementById('u-gas').value=util.gas||'';
-    document.getElementById('u-elec').value=util.elec||'';
     if(usd&&usv){ usd.style.display='block'; usv.textContent='水道 '+fmt(util.water)+' ／ ガス '+fmt(util.gas)+' ／ 電気 '+fmt(util.elec)+' ／ 計 '+fmt(total); }
   } else {
     stEl.textContent='未登録（概算15,000円）';stEl.style.color='var(--text-faint)';
@@ -1367,15 +1425,17 @@ function closeModal(e){
     document.getElementById('modal-overlay').style.display='none';
 }
 
-var chartA=null,chartE=null;
+var chartA=null;
 function renderGraphs(){
   var labels=[],assetsArr=[],expenseArr=[];
   var y=START_Y,m=START_M;
   var ey=S.curY,em=S.curM;
   while(y<ey||(y===ey&&m<=em)){
     labels.push(y+'/'+(m+1<10?'0':'')+(m+1));
-    var acc=calcAccum(y,m);
-    assetsArr.push(Math.round(acc.assets/1000)/10);
+    var bkEntry=S.bankBalances&&S.bankBalances[mkey(y,m)];
+    var acc2=calcAccum(y,m);
+    var assetVal=bkEntry?bkEntry.total:Math.round(acc2.assets);
+    assetsArr.push(Math.round(assetVal/1000)/10);
     expenseArr.push(Math.round((getFixedTotal(y,m)+getVariableTotal(y,m))/10000*10)/10);
     m++;if(m>11){m=0;y++;}
   }
@@ -1383,8 +1443,7 @@ function renderGraphs(){
   var gOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:function(v){return v+'万';},font:{size:10}},grid:{color:'rgba(120,120,120,.1)'}}}};
   if(chartA){chartA.data.labels=labels;chartA.data.datasets[0].data=assetsArr;chartA.update();}
   else chartA=new Chart(document.getElementById('chart-assets'),{type:'line',data:{labels:labels,datasets:[{data:assetsArr,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]},options:gOpts});
-  if(chartE){chartE.data.labels=labels;chartE.data.datasets[0].data=expenseArr;chartE.update();}
-  else chartE=new Chart(document.getElementById('chart-expense'),{type:'bar',data:{labels:labels,datasets:[{data:expenseArr,backgroundColor:'rgba(139,42,42,.15)',borderColor:'#8B2A2A',borderWidth:1.5,borderRadius:4}]},options:gOpts});
+
 }
 
 function renderCatSummary(){
@@ -1585,10 +1644,6 @@ function updateBillingDisplay(){
   var wrap=document.getElementById('billing-diff-wrap');
   if(!wrap) return;
   if(bk){
-    var el1=document.getElementById('billing-paypay');
-    var el2=document.getElementById('billing-rakuten');
-    if(el1) el1.value=bk.paypay||'';
-    if(el2) el2.value=bk.rakuten||'';
     var YACHIN=42330;
     var billingTotal=(bk.paypay||0)+(bk.rakuten||0)+YACHIN;
     var kakeiboTotal=getFixedTotal(y,m)+getVariableTotal(y,m);
@@ -1640,6 +1695,41 @@ function updateSalaryBadge(){
   // ボーナス入力欄の表示（7月・12月のみ）
   var bw=document.getElementById('bonus-input-wrap');
   if(bw) bw.style.display=isBonus(S.curM)?'flex':'none';
+
+  // 給料・ボーナス入力欄：未入力の月は空欄、入力済みは値を表示
+  var salInput=document.getElementById('salary-input');
+  var bonusInput=document.getElementById('bonus-input');
+  if(salInput) salInput.value=sal||'';
+  if(bonusInput) bonusInput.value=bonusAmt||'';
+
+  // 請求額入力欄：その月の保存値を表示、なければ空欄
+  var bl=S.billings&&S.billings[curKey()];
+  var ppEl=document.getElementById('billing-paypay');
+  var rkEl=document.getElementById('billing-rakuten');
+  if(ppEl) ppEl.value=bl?bl.paypay||'':'';
+  if(rkEl) rkEl.value=bl?bl.rakuten||'':'';
+
+  // 在高入力欄：その月の保存値を表示、なければ空欄
+  var bk=S.bankBalances&&S.bankBalances[curKey()];
+  var brEl=document.getElementById('balance-rakuten');
+  var byEl=document.getElementById('balance-yucho');
+  if(brEl) brEl.value=bk?bk.rakuten||'':'';
+  if(byEl) byEl.value=bk?bk.yucho||'':'';
+
+  // ふき・返済残高の入力欄に現在値を表示
+  var fukiIn=document.getElementById('fuki-input');
+  var repayIn=document.getElementById('repay-input');
+  if(fukiIn) fukiIn.placeholder=fmt(S.fukiBalance||0);
+  if(repayIn) repayIn.placeholder=fmt(S.repayBalance||0);
+
+  // 光熱費入力欄：その月の保存値を表示、なければ空欄
+  var util=getUtility(S.curY,S.curM);
+  var uwEl=document.getElementById('u-water');
+  var ugEl=document.getElementById('u-gas');
+  var ueEl=document.getElementById('u-elec');
+  if(uwEl) uwEl.value=util?util.water||'':'';
+  if(ugEl) ugEl.value=util?util.gas||'':'';
+  if(ueEl) ueEl.value=util?util.elec||'':'';
 }
 
 function saveBalance(){
