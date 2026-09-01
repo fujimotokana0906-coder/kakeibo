@@ -379,6 +379,11 @@ select{-webkit-appearance:auto;appearance:auto}
     <div class="chart-wrap"><canvas id="chart-assets"></canvas></div>
   </div>
 
+  <div class="card">
+    <div class="card-title">収入の推移</div>
+    <div class="chart-wrap"><canvas id="chart-income"></canvas></div>
+  </div>
+
   <!-- 貯金目標バー -->
   <div class="card">
     <div class="card-title">貯金目標の進捗</div>
@@ -580,6 +585,7 @@ select{-webkit-appearance:auto;appearance:auto}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script>
 // ── 過去データ（インポート済み）──
 var IMPORTED_DATA = null;
@@ -1432,9 +1438,9 @@ function closeModal(e){
     document.getElementById('modal-overlay').style.display='none';
 }
 
-var chartA=null;
+var chartA=null,chartI=null;
 function renderGraphs(){
-  var labels=[],assetsArr=[],expenseArr=[];
+  var labels=[],assetsArr=[],incomeArr=[];
   var y=START_Y,m=START_M;
   var ey=S.curY,em=S.curM;
   while(y<ey||(y===ey&&m<=em)){
@@ -1443,13 +1449,32 @@ function renderGraphs(){
     var acc2=calcAccum(y,m);
     var assetVal=bkEntry?bkEntry.total:Math.round(acc2.assets);
     assetsArr.push(Math.round(assetVal/1000)/10);
-    expenseArr.push(Math.round((getFixedTotal(y,m)+getVariableTotal(y,m))/10000*10)/10);
+    incomeArr.push(Math.round(getIncome(y,m)/1000)/10);
     m++;if(m>11){m=0;y++;}
   }
   if(!labels.length) return;
   var gOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:function(v){return v+'万';},font:{size:10}},grid:{color:'rgba(120,120,120,.1)'}}}};
   if(chartA){chartA.data.labels=labels;chartA.data.datasets[0].data=assetsArr;chartA.update();}
   else chartA=new Chart(document.getElementById('chart-assets'),{type:'line',data:{labels:labels,datasets:[{data:assetsArr,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]},options:gOpts});
+  // ボーナス月（7月=idx6,12月=idx11）かどうかを月ラベルから判定
+  var iColors=labels.map(function(l){
+    var mo=parseInt(l.split('/')[1]);
+    return (mo===7||mo===12)?'rgba(29,158,117,.35)':'rgba(26,58,92,.2)';
+  });
+  var iBorderColors=labels.map(function(l){
+    var mo=parseInt(l.split('/')[1]);
+    return (mo===7||mo===12)?'#1D9E75':'#1A3A5C';
+  });
+  var iOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},annotation:{annotations:{baseLine:{type:'line',yMin:20,yMax:20,borderColor:'rgba(139,42,42,.85)',borderWidth:2}}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{min:0,ticks:{callback:function(v){return v+'万';},font:{size:10}},grid:{color:'rgba(120,120,120,.1)'}}}};
+  if(chartI){
+    chartI.data.labels=labels;
+    chartI.data.datasets[0].data=incomeArr;
+    chartI.data.datasets[0].backgroundColor=iColors;
+    chartI.data.datasets[0].borderColor=iBorderColors;
+    chartI.update();
+  } else {
+    chartI=new Chart(document.getElementById('chart-income'),{type:'bar',data:{labels:labels,datasets:[{data:incomeArr,backgroundColor:iColors,borderColor:iBorderColors,borderWidth:1.5,borderRadius:4}]},options:iOpts});
+  }
 
 }
 
