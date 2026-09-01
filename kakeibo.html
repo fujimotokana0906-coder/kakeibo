@@ -159,20 +159,17 @@ select{-webkit-appearance:auto;appearance:auto}
 
 <!-- 資産合計 大表示 -->
 <div style="background:var(--accent);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
-    <div>
-      <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計</div>
-      <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-assets-big">—</div>
-    </div>
+  <div style="margin-bottom:12px">
+    <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px;letter-spacing:.06em">資産合計</div>
+    <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-assets-big">—</div>
   </div>
-  <!-- 貯金進捗 -->
   <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
       <div style="font-size:11px;color:rgba(255,255,255,.7)">今月の貯金</div>
       <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">40,000円</span></div>
     </div>
     <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:5px">
-      <div id="saving-bar" style="height:100%;border-radius:3px;transition:width .4s;background:#9FE1CB;width:0%"></div>
+      <div id="saving-bar" style="height:100%;border-radius:3px;transition:width .4s;background:rgba(255,255,255,.6);width:0%"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:#fff" id="saving-amount">—</div>
@@ -185,7 +182,7 @@ select{-webkit-appearance:auto;appearance:auto}
   <div class="stat"><div class="stat-label">収入</div><div class="stat-value neutral" id="s-income">—</div><div class="stat-sub" id="s-income-sub"></div></div>
   <div class="stat"><div class="stat-label">固定費合計</div><div class="stat-value negative" id="s-fixed">—</div></div>
   <div class="stat"><div class="stat-label">変動費合計</div><div class="stat-value negative" id="s-var">—</div></div>
-  <div class="stat"><div class="stat-label">今月収支</div><div class="stat-value" id="s-bal">—</div><div class="stat-sub" id="s-debt-sub"></div></div>
+  <div class="stat"><div class="stat-label">今月収支</div><div class="stat-value" id="s-bal">—</div></div>
 </div>
 
 <div class="tabs">
@@ -461,14 +458,7 @@ select{-webkit-appearance:auto;appearance:auto}
     </div>
 
     <div style="margin-bottom:20px">
-      <div class="card-title">貯金目標（月額）</div>
-      <div style="display:flex;align-items:center;gap:8px;background:var(--blue-light);border:1px solid #A8C4E8;border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
-        <span style="font-size:12px;color:var(--blue);flex-shrink:0">月の目標貯金額</span>
-        <input type="number" id="saving-goal-input" inputmode="numeric" placeholder="40000" style="font-family:var(--mono);background:transparent;border:none;border-bottom:1px solid #A8C4E8;border-radius:0;padding:2px 4px;flex:1;color:var(--blue)">
-        <span style="font-size:12px;color:var(--blue)">円</span>
-      </div>
-      <button class="btn btn-primary" style="width:100%;background:var(--blue);border-color:var(--blue)" onclick="saveSavingGoal()">目標を保存</button>
-    </div>
+      <div class="card-title">給料の設定</div>
       <!-- 合計金額表示（欄外） -->
       <div id="salary-saved-display" style="display:none;margin-bottom:10px">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">✓ 登録済み合計</div>
@@ -862,20 +852,19 @@ function render(){
   var acc=calcAccum(y,m);
   document.getElementById('s-assets-big').textContent=fmt(Math.round(acc.assets));
   // 貯金進捗
-  var SAVING_GOAL = S.savingGoal || 40000;
-  var saving = income - fixedT - varT;
-  var savingPct = Math.max(0, Math.min(Math.round(saving / SAVING_GOAL * 100), 100));
-  var savingEl = document.getElementById('saving-amount');
-  var savingBar = document.getElementById('saving-bar');
-  var savingPctEl = document.getElementById('saving-pct');
-  var savingGoalLabel = document.getElementById('saving-goal-label');
-  if(savingEl) savingEl.textContent = (saving >= 0 ? '+' : '') + fmt(saving);
-  if(savingEl) savingEl.style.color = saving >= SAVING_GOAL ? '#9FE1CB' : saving >= 0 ? '#fff' : '#FCA5A5';
-  if(savingBar) savingBar.style.width = savingPct + '%';
-  if(savingBar) savingBar.style.background = saving >= SAVING_GOAL ? '#9FE1CB' : saving >= 0 ? 'rgba(255,255,255,.6)' : '#FCA5A5';
-  if(savingPctEl) savingPctEl.textContent = savingPct + '%';
-  if(savingGoalLabel) savingGoalLabel.textContent = fmt(SAVING_GOAL);
-  document.getElementById('s-debt-sub').textContent=acc.debt>0?'返済残 '+fmt(acc.debt):'返済完了！';
+  var SAVING_GOAL=S.savingGoal||40000;
+  var saving=income-fixedT-varT;
+  var savingPct=Math.max(0,Math.min(Math.round(saving/SAVING_GOAL*100),100));
+  var savingEl=document.getElementById('saving-amount');
+  var savingBar=document.getElementById('saving-bar');
+  var savingPctEl=document.getElementById('saving-pct');
+  var savingGoalLabel=document.getElementById('saving-goal-label');
+  if(savingEl){savingEl.textContent=(saving>=0?'+':'')+fmt(saving);savingEl.style.color=saving>=SAVING_GOAL?'#9FE1CB':saving>=0?'#fff':'#FCA5A5';}
+  if(savingBar){savingBar.style.width=savingPct+'%';savingBar.style.background=saving>=SAVING_GOAL?'#9FE1CB':saving>=0?'rgba(255,255,255,.6)':'#FCA5A5';}
+  if(savingPctEl) savingPctEl.textContent=savingPct+'%';
+  if(savingGoalLabel) savingGoalLabel.textContent=fmt(SAVING_GOAL);
+
+
 
   var pct=Math.min(Math.round(varT/VARIABLE_BUDGET*100),100);
   document.getElementById('v-total-lbl').textContent=fmt(varT);
@@ -1568,15 +1557,6 @@ function saveUtility(){
   var elec=parseInt(document.getElementById('u-elec').value)||0;
   if(water===0&&gas===0&&elec===0){alert('金額を入力してください');return;}
   S.utilities[curKey()]={water:water,gas:gas,elec:elec};save();render();
-}
-
-function saveSavingGoal(){
-  var val=parseInt(document.getElementById('saving-goal-input').value);
-  if(!val||val<=0){alert('金額を入力してください');return;}
-  S.savingGoal=val;
-  document.getElementById('saving-goal-input').value='';
-  save();render();
-  alert('貯金目標を '+fmt(val)+' に設定しました');
 }
 
 function saveSalary(){
