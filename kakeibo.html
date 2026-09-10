@@ -165,20 +165,6 @@ select{-webkit-appearance:auto;appearance:auto}
     <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;line-height:1" id="s-free-assets">—</div>
     <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">資産合計 <span style="font-family:var(--mono)" id="s-assets-big">—</span></div>
   </div>
-  <!-- 今月の貯金進捗（緑カード内） -->
-  <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div style="font-size:11px;color:rgba(255,255,255,.7)">今月の貯金</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.7)">目標 <span id="saving-goal-label">50,000円</span></div>
-    </div>
-    <div style="height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:4px">
-      <div id="saving-bar" style="height:100%;border-radius:3px;transition:width .4s;background:rgba(255,255,255,.6);width:0%"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:#fff" id="saving-amount">—</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.7)" id="saving-pct">0%</div>
-    </div>
-  </div>
 </div>
 
 <div class="summary-grid">
@@ -626,6 +612,8 @@ var FIXED_DEFAULT = [
   {id:6, name:'積立NISA（楽天VTI）',amount:0,    type:'invest',  day:1},
   {id:7, name:'カーローン',        amount:30000, type:'repay',   day:1},
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
+  {id:11,name:'🐕 ふき貯金',       amount:30000, type:'invest',  day:1},
+  {id:12,name:'💴 親への返済',     amount:20000, type:'repay',   day:1},
 ];
 
 var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',transport:'ドライブ費',travel:'旅行',utility:'光熱費',other:'その他','travel-transport':'旅行/交通費','travel-food':'旅行/食費','travel-other':'旅行/その他'};
@@ -671,10 +659,17 @@ function loadState(){
       if(!state.billings) state.billings={};
       if(state.fukiBalance===undefined) state.fukiBalance=150000;
       if(state.repayBalance===undefined) state.repayBalance=0;
-      if(!state.billings) state.billings={};
-      if(state.fukiBalance===undefined) state.fukiBalance=150000;
-      if(state.repayBalance===undefined) state.repayBalance=0;
+      if(!state.lastAccrualMk) state.lastAccrualMk=mkey(state.curY,state.curM);
       if(!state.balanceAdj) state.balanceAdj={};
+      // 固定費に「ふき貯金」「親への返済」がなければ追加
+      var hasFukiItem=state.fixedItems.some(function(f){return f.id===11;});
+      if(!hasFukiItem){
+        state.fixedItems.push({id:11,name:'🐕 ふき貯金',amount:30000,type:'invest',day:1});
+      }
+      var hasRepayItem=state.fixedItems.some(function(f){return f.id===12;});
+      if(!hasRepayItem){
+        state.fixedItems.push({id:12,name:'💴 親への返済',amount:20000,type:'repay',day:1});
+      }
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
       if(!hasTravelBudget){
@@ -708,9 +703,7 @@ function loadState(){
     repayBalance: 0,       // 親への返済の現在残高（初期0）
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
     bonuses: {},           // {mkey: ボーナス額}
-    billings: {},          // {mkey: {paypay, rakuten}}
-    fukiBalance: 150000,   // ふき貯金の現在残高（初期15万）
-    repayBalance: 0,       // 親への返済の現在残高（初期0）
+    lastAccrualMk: mkey(START_Y,START_M), // 最後に積立加算した月
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
@@ -907,13 +900,15 @@ function render(){
   // ふき貯金バー
   var FUKI_GOAL=800000;
   var fukiBalance=S.fukiBalance||0;
+  var fukiItem=S.fixedItems.filter(function(f){return f.id===11;})[0];
+  var fukiThisMonth=fukiItem?fukiItem.amount:30000;
   var fukiPct=Math.min(Math.round(fukiBalance/FUKI_GOAL*100),100);
   var fukiBar=document.getElementById('fuki-bar');
   var fukiAmt=document.getElementById('fuki-amount');
   var fukiPctEl=document.getElementById('fuki-pct');
   var fukiRemain=document.getElementById('fuki-remain');
   if(fukiBar) fukiBar.style.width=fukiPct+'%';
-  if(fukiAmt) fukiAmt.textContent=fmt(fukiBalance)+' / '+fmt(FUKI_GOAL);
+  if(fukiAmt) fukiAmt.textContent=fmt(fukiBalance)+' / '+fmt(FUKI_GOAL)+'（今月 +'+fmt(fukiThisMonth)+'）';
   if(fukiPctEl) fukiPctEl.textContent=fukiPct+'%';
   if(fukiRemain){
     var fukiLeft=FUKI_GOAL-fukiBalance;
@@ -927,13 +922,15 @@ function render(){
   // 親への返済バー
   var REPAY_GOAL=661000;
   var repayBalance=S.repayBalance||0;
+  var repayItem=S.fixedItems.filter(function(f){return f.id===12;})[0];
+  var repayThisMonth=repayItem?repayItem.amount:20000;
   var repayPct=Math.min(Math.round(repayBalance/REPAY_GOAL*100),100);
   var repayBar=document.getElementById('repay-bar');
   var repayAmt=document.getElementById('repay-amount');
   var repayPctEl=document.getElementById('repay-pct');
   var repayRemain=document.getElementById('repay-remain');
   if(repayBar) repayBar.style.width=repayPct+'%';
-  if(repayAmt) repayAmt.textContent=fmt(repayBalance)+' / '+fmt(REPAY_GOAL);
+  if(repayAmt) repayAmt.textContent=fmt(repayBalance)+' / '+fmt(REPAY_GOAL)+'（今月 +'+fmt(repayThisMonth)+'）';
   if(repayPctEl) repayPctEl.textContent=repayPct+'%';
   if(repayRemain){
     var repayLeft=REPAY_GOAL-repayBalance;
@@ -943,18 +940,6 @@ function render(){
       repayRemain.textContent='残り '+fmt(repayLeft)+' / あと約'+repayMonths+'ヶ月（月2万円ペース）';
     }
   }
-  // 貯金進捗
-  var SAVING_GOAL=S.savingGoal||50000;
-  var saving=income-fixedT-varT;
-  var savingPct=Math.max(0,Math.min(Math.round(saving/SAVING_GOAL*100),100));
-  var savingEl=document.getElementById('saving-amount');
-  var savingBar=document.getElementById('saving-bar');
-  var savingPctEl=document.getElementById('saving-pct');
-  var savingGoalLabel=document.getElementById('saving-goal-label');
-  if(savingEl){savingEl.textContent=(saving>=0?'+':'')+fmt(saving);savingEl.style.color=saving>=SAVING_GOAL?'#9FE1CB':saving>=0?'#fff':'#FCA5A5';}
-  if(savingBar){savingBar.style.width=savingPct+'%';savingBar.style.background=saving>=SAVING_GOAL?'#9FE1CB':saving>=0?'rgba(255,255,255,.6)':'#FCA5A5';}
-  if(savingPctEl) savingPctEl.textContent=savingPct+'%';
-  if(savingGoalLabel) savingGoalLabel.textContent=fmt(SAVING_GOAL);
   updateBillingDisplay();
 
 
@@ -1811,7 +1796,27 @@ function changeMonth(d){
   if(S.curM>11){S.curM=0;S.curY++;}
   if(S.curM<0){S.curM=11;S.curY--;}
   if(S.curY<START_Y||(S.curY===START_Y&&S.curM<START_M)){S.curY=START_Y;S.curM=START_M;}
+  accrueSavingsIfNeeded();
   save();render();
+}
+
+// 月初（未加算の月に進んだとき）にふき貯金・返済積立を自動加算
+function accrueSavingsIfNeeded(){
+  var nowMk=curKey();
+  if(!S.lastAccrualMk) S.lastAccrualMk=nowMk;
+  if(nowMk<=S.lastAccrualMk) return; // 既に加算済み、または過去に戻った場合は何もしない
+  // lastAccrualMkの次の月からnowMkまで、月ごとに加算（複数月飛んだ場合も対応）
+  var parts=S.lastAccrualMk.split('-');
+  var ly=parseInt(parts[0]), lm=parseInt(parts[1])-1;
+  while(true){
+    lm++;
+    if(lm>11){lm=0;ly++;}
+    var mk=mkey(ly,lm);
+    S.fukiBalance=(S.fukiBalance||0)+30000;
+    S.repayBalance=(S.repayBalance||0)+20000;
+    S.lastAccrualMk=mk;
+    if(mk>=nowMk) break;
+  }
 }
 
 function sw(e,tab){
