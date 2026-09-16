@@ -300,6 +300,10 @@ select{-webkit-appearance:auto;appearance:auto}
       <span class="tlabel">固定費合計（今月）</span>
       <span class="tamount" id="f-total-lbl">0円</span>
     </div>
+    <div class="total-bar" style="background:var(--warn-light);margin-top:-6px;margin-bottom:14px">
+      <span class="tlabel" style="color:var(--warn)">積立費合計（今月）</span>
+      <span class="tamount" id="s-total-lbl" style="color:var(--warn)">0円</span>
+    </div>
     <div id="travel-budget-bar" style="display:none;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--blue-light);border-radius:var(--r);margin-bottom:8px;font-size:13px">
       <span style="color:var(--blue)">✈️ 旅行予算（別途確保）</span>
       <span style="font-family:var(--mono);font-weight:500;color:var(--blue)" id="travel-budget-amt">0円</span>
@@ -614,6 +618,7 @@ var FIXED_DEFAULT = [
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
   {id:11,name:'🐕 ふき貯金',       amount:25000, type:'invest',  day:1},
   {id:12,name:'💴 親への返済',     amount:15000, type:'repay',   day:1},
+  {id:13,name:'cx3ローン',        amount:34400, type:'repay',   day:1, startMk:'2026-09', endMk:'2028-07', bonusExtra:100000},
 ];
 
 var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',transport:'ドライブ費',travel:'旅行',utility:'光熱費',other:'その他','travel-transport':'旅行/交通費','travel-food':'旅行/食費','travel-other':'旅行/その他'};
@@ -674,6 +679,10 @@ function loadState(){
       var hasRepayItem=state.fixedItems.some(function(f){return f.id===12;});
       if(!hasRepayItem){
         state.fixedItems.push({id:12,name:'💴 親への返済',amount:15000,type:'repay',day:1});
+      }
+      var hasCx3=state.fixedItems.some(function(f){return f.id===13;});
+      if(!hasCx3){
+        state.fixedItems.push({id:13,name:'cx3ローン',amount:34400,type:'repay',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000});
       }
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
@@ -767,6 +776,12 @@ function isFixedActive(f,y,m){
   return true;
 }
 
+function getItemAmount(f,y,m){
+  var amt=f.amount;
+  if(f.bonusExtra&&isBonus(m)) amt+=f.bonusExtra;
+  return amt;
+}
+
 function getFixedTotal(y,m){
   var util=getUtility(y,m);
   var t=S.fixedItems.reduce(function(s,f){
@@ -783,11 +798,25 @@ function getFixedTotal(y,m){
       }
       return s;
     }
-    if(f.type==='accordion') return s+f.amount;
-    return s+f.amount;
+    if(f.type==='accordion') return s+getItemAmount(f,y,m);
+    return s+getItemAmount(f,y,m);
   },0);
   if(util) t+=(util.water+util.gas+util.elec);
   return t;
+}
+
+// 積立（invest/repay）だけの合計 ※getFixedTotalには既に含まれている表示用の内訳
+function getSavingsTotal(y,m){
+  return S.fixedItems.reduce(function(s,f){
+    if(!isFixedActive(f,y,m)) return s;
+    if(f.type==='invest'||f.type==='repay') return s+getItemAmount(f,y,m);
+    return s;
+  },0);
+}
+
+// 積立を除いた固定費だけの合計（表示用）
+function getFixedOnlyTotal(y,m){
+  return getFixedTotal(y,m)-getSavingsTotal(y,m);
 }
 
 function getVariableTotal(y,m){
@@ -965,7 +994,9 @@ function render(){
   pf.style.width=pct+'%';
   pf.className='pfill '+(pct<70?'fill-ok':pct<100?'fill-warn':'fill-over');
 
-  document.getElementById('f-total-lbl').textContent=fmt(fixedT);
+  document.getElementById('f-total-lbl').textContent=fmt(getFixedOnlyTotal(y,m));
+  var sTotalEl=document.getElementById('s-total-lbl');
+  if(sTotalEl) sTotalEl.textContent=fmt(getSavingsTotal(y,m));
   // 旅行予算バー
   var travelF=S.fixedItems.filter(function(f){return f.travelBudget;})[0];
   var travelBar=document.getElementById('travel-budget-bar');
@@ -1085,7 +1116,9 @@ function renderFixed(y,m){
       amtDisplay='<button onclick="event.stopPropagation();toggleAccordion('+f.id+')" ontouchend="handleAccordionTouch(event,'+f.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:16px;padding:4px 8px;-webkit-tap-highlight-color:transparent;touch-action:manipulation">'+(isOpen?'▲':'▼')+'</button>'
         +'<span class="famt">'+fmt(f.amount)+'</span>';
     } else {
-      amtDisplay='<span class="famt" onclick="editFixedAmount('+f.id+')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="タップで金額変更">'+fmt(f.amount)+'</span>';
+      var displayAmt=getItemAmount(f,y,m);
+      var isBonusAdded=f.bonusExtra&&isBonus(m);
+      amtDisplay='<span class="famt" onclick="editFixedAmount('+f.id+')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="タップで金額変更">'+fmt(displayAmt)+(isBonusAdded?' <span style="font-size:10px;color:var(--warn)">(+'+fmt(f.bonusExtra)+')</span>':'')+'</span>';
     }
     var isFirst=idx===0;
     var isLast=idx===S.fixedItems.length-1;
