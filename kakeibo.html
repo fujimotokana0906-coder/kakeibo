@@ -659,6 +659,11 @@ function loadState(){
       if(!state.billings) state.billings={};
       if(state.fukiBalance===undefined) state.fukiBalance=150000;
       if(state.repayBalance===undefined) state.repayBalance=0;
+      // ふき貯金残高を8万円にリセット（1回限り）
+      if(!state.fukiResetV2){
+        state.fukiBalance=80000;
+        state.fukiResetV2=true;
+      }
       if(!state.lastAccrualMk) state.lastAccrualMk=mkey(state.curY,state.curM);
       if(!state.balanceAdj) state.balanceAdj={};
       // 固定費に「ふき貯金」「親への返済」がなければ追加
@@ -892,9 +897,18 @@ function render(){
   }
   var freeEl=document.getElementById('s-free-assets');
   if(freeEl){
+    var rawFree=displayAssets-(S.fukiBalance||0)-(S.repayBalance||0);
+    if(rawFree<0){
+      // マイナス分を返済積立から引き当てる（実際に残高を減らす）
+      var borrow=Math.min(-rawFree, S.repayBalance||0);
+      if(borrow>0){
+        S.repayBalance=(S.repayBalance||0)-borrow;
+        save();
+      }
+    }
     var freeAssets=displayAssets-(S.fukiBalance||0)-(S.repayBalance||0);
-    freeEl.textContent=fmt(freeAssets);
-    freeEl.style.color=freeAssets>=0?'rgba(255,255,255,.5)':'#FCA5A5';
+    freeEl.textContent=fmt(Math.max(freeAssets,0));
+    freeEl.style.color='rgba(255,255,255,.5)';
   }
 
   // ふき貯金バー
