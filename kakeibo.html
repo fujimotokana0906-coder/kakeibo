@@ -277,7 +277,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <span class="tamount" id="v-total-lbl">0円</span>
     </div>
     <div class="pbar"><div class="pfill" id="v-pfill" style="width:0%"></div></div>
-    <div class="plabel"><span>予算 60,000円</span><span id="v-ppct">0%</span></div>
+    <div class="plabel"><span>予算 70,000円</span><span id="v-ppct">0%</span></div>
     <div style="height:10px"></div>
     <div class="entry-list" id="entry-list"><div class="empty-state">📋 まだ記録がありません</div></div>
   </div>
@@ -377,7 +377,7 @@ select{-webkit-appearance:auto;appearance:auto}
     <div style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
         <span style="font-size:13px;font-weight:500">🐕 ふき貯金</span>
-        <span style="font-size:11px;color:var(--text-muted)">目標 800,000円（2028年3月）</span>
+        <span style="font-size:11px;color:var(--text-muted)">目標 500,000円</span>
       </div>
       <div class="pbar" style="height:8px">
         <div class="pfill fill-ok" id="fuki-bar" style="width:0%"></div>
@@ -585,7 +585,7 @@ try {
 var BASE_SALARY = 200000;
 var BONUS = 200000;
 var BONUS_MONTHS = [6,11];
-var VARIABLE_BUDGET = 60000;
+var VARIABLE_BUDGET = 70000;
 var INITIAL_ASSETS = 276007;
 var INITIAL_DEBT = 661000;
 var START_Y = 2026, START_M = 4;
@@ -609,11 +609,11 @@ var FIXED_DEFAULT = [
   },
   {id:8, name:'エブリカ(食費)',   amount:10000, type:'budget-accordion', day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
-  {id:6, name:'積立NISA（楽天VTI）',amount:0,    type:'invest',  day:1},
+  {id:6, name:'積立NISA（楽天VTI）',amount:8000, type:'invest',  day:1},
   {id:7, name:'カーローン',        amount:30000, type:'repay',   day:1},
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
-  {id:11,name:'🐕 ふき貯金',       amount:30000, type:'invest',  day:1},
-  {id:12,name:'💴 親への返済',     amount:20000, type:'repay',   day:1},
+  {id:11,name:'🐕 ふき貯金',       amount:25000, type:'invest',  day:1},
+  {id:12,name:'💴 親への返済',     amount:15000, type:'repay',   day:1},
 ];
 
 var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',transport:'ドライブ費',travel:'旅行',utility:'光熱費',other:'その他','travel-transport':'旅行/交通費','travel-food':'旅行/食費','travel-other':'旅行/その他'};
@@ -664,11 +664,11 @@ function loadState(){
       // 固定費に「ふき貯金」「親への返済」がなければ追加
       var hasFukiItem=state.fixedItems.some(function(f){return f.id===11;});
       if(!hasFukiItem){
-        state.fixedItems.push({id:11,name:'🐕 ふき貯金',amount:30000,type:'invest',day:1});
+        state.fixedItems.push({id:11,name:'🐕 ふき貯金',amount:25000,type:'invest',day:1});
       }
       var hasRepayItem=state.fixedItems.some(function(f){return f.id===12;});
       if(!hasRepayItem){
-        state.fixedItems.push({id:12,name:'💴 親への返済',amount:20000,type:'repay',day:1});
+        state.fixedItems.push({id:12,name:'💴 親への返済',amount:15000,type:'repay',day:1});
       }
       // 旅行予算がなければ追加
       var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
@@ -699,7 +699,7 @@ function loadState(){
     salaries: imp.salaries || {},
     utilities: imp.utilities || {},
     billings: {},          // {mkey: {paypay, rakuten}}
-    fukiBalance: 150000,   // ふき貯金の現在残高（初期15万）
+    fukiBalance: 80000,    // ふき貯金の現在残高（初期8万）
     repayBalance: 0,       // 親への返済の現在残高（初期0）
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
     bonuses: {},           // {mkey: ボーナス額}
@@ -898,7 +898,7 @@ function render(){
   }
 
   // ふき貯金バー
-  var FUKI_GOAL=800000;
+  var FUKI_GOAL=500000;
   var fukiBalance=S.fukiBalance||0;
   var fukiItem=S.fixedItems.filter(function(f){return f.id===11;})[0];
   var fukiThisMonth=fukiItem?fukiItem.amount:30000;
@@ -914,8 +914,8 @@ function render(){
     var fukiLeft=FUKI_GOAL-fukiBalance;
     if(fukiLeft<=0){ fukiRemain.textContent='達成！'; }
     else {
-      var fukiMonths=Math.ceil(fukiLeft/30000);
-      fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月3万円ペース）';
+      var fukiMonths=Math.ceil(fukiLeft/25000);
+      fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月2.5万円ペース）';
     }
   }
 
@@ -936,8 +936,8 @@ function render(){
     var repayLeft=REPAY_GOAL-repayBalance;
     if(repayLeft<=0){ repayRemain.textContent='達成！'; }
     else {
-      var repayMonths=Math.ceil(repayLeft/20000);
-      repayRemain.textContent='残り '+fmt(repayLeft)+' / あと約'+repayMonths+'ヶ月（月2万円ペース）';
+      var repayMonths=Math.ceil(repayLeft/15000);
+      repayRemain.textContent='残り '+fmt(repayLeft)+' / あと約'+repayMonths+'ヶ月（月1.5万円ペース）';
     }
   }
   updateBillingDisplay();
@@ -1812,8 +1812,8 @@ function accrueSavingsIfNeeded(){
     lm++;
     if(lm>11){lm=0;ly++;}
     var mk=mkey(ly,lm);
-    S.fukiBalance=(S.fukiBalance||0)+30000;
-    S.repayBalance=(S.repayBalance||0)+20000;
+    S.fukiBalance=(S.fukiBalance||0)+25000;
+    S.repayBalance=(S.repayBalance||0)+15000;
     S.lastAccrualMk=mk;
     if(mk>=nowMk) break;
   }
