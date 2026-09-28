@@ -278,6 +278,16 @@ select{-webkit-appearance:auto;appearance:auto}
     </div>
     <div class="pbar"><div class="pfill" id="v-pfill" style="width:0%"></div></div>
     <div class="plabel"><span>予算 70,000円</span><span id="v-ppct">0%</span></div>
+    <div id="v-remain-wrap" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding:8px 10px;background:var(--surface2);border-radius:var(--r)">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted)">今月あと使えるのは</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700" id="v-remain">—</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--text-muted)" id="v-perday-label">1日あたり</div>
+        <div style="font-family:var(--mono);font-size:15px;font-weight:600" id="v-perday">—</div>
+      </div>
+    </div>
     <div style="height:10px"></div>
     <div class="entry-list" id="entry-list"><div class="empty-state">📋 まだ記録がありません</div></div>
   </div>
@@ -614,11 +624,10 @@ var FIXED_DEFAULT = [
   {id:8, name:'エブリカ(食費)',   amount:10000, type:'budget-accordion', day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
   {id:6, name:'積立NISA（楽天VTI）',amount:15000, type:'invest',  day:1, endMk:'2026-10'},
-  {id:14,name:'積立NISA（楽天VTI）',amount:5000, type:'invest',  day:1, startMk:'2026-11'},
-  {id:7, name:'カーローン',        amount:30000, type:'repay',   day:1},
+  {id:14,name:'積立NISA（楽天VTI）',amount:0, type:'invest',  day:1, startMk:'2026-11'},
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
-  {id:11,name:'🐕 ふき貯金',       amount:25000, type:'invest',  day:1},
-  {id:12,name:'💴 親への返済',     amount:15000, type:'repay',   day:1},
+  {id:11,name:'🐕 ふき貯金',       amount:20000, type:'invest',  day:1},
+  {id:12,name:'💴 親への返済',     amount:5000, type:'repay',   day:1},
   {id:13,name:'cx3ローン',        amount:34400, type:'repay',   day:1, startMk:'2026-09', endMk:'2028-07', bonusExtra:100000},
 ];
 
@@ -675,11 +684,11 @@ function loadState(){
       // 固定費に「ふき貯金」「親への返済」がなければ追加
       var hasFukiItem=state.fixedItems.some(function(f){return f.id===11;});
       if(!hasFukiItem){
-        state.fixedItems.push({id:11,name:'🐕 ふき貯金',amount:25000,type:'invest',day:1});
+        state.fixedItems.push({id:11,name:'🐕 ふき貯金',amount:20000,type:'invest',day:1});
       }
       var hasRepayItem=state.fixedItems.some(function(f){return f.id===12;});
       if(!hasRepayItem){
-        state.fixedItems.push({id:12,name:'💴 親への返済',amount:15000,type:'repay',day:1});
+        state.fixedItems.push({id:12,name:'💴 親への返済',amount:5000,type:'repay',day:1});
       }
       // 積立NISA：11月から5,000円に変更（10月までは8,000円）
       var hasNisaNew=state.fixedItems.some(function(f){return f.id===14;});
@@ -689,7 +698,7 @@ function loadState(){
           return f;
         });
         var nisaIdx=state.fixedItems.findIndex(function(f){return f.id===6;});
-        var nisaNew={id:14,name:'積立NISA（楽天VTI）',amount:5000,type:'invest',day:1,startMk:'2026-11'};
+        var nisaNew={id:14,name:'積立NISA（楽天VTI）',amount:0,type:'invest',day:1,startMk:'2026-11'};
         if(nisaIdx>=0) state.fixedItems.splice(nisaIdx+1,0,nisaNew);
         else state.fixedItems.push(nisaNew);
       }
@@ -697,6 +706,18 @@ function loadState(){
         if(f.id===6 && f.endMk==='2026-10' && f.amount===8000) return Object.assign({},f,{amount:15000});
         return f;
       });
+      // カーローンはcx3ローンに一本化（id:7を削除）
+      state.fixedItems=state.fixedItems.filter(function(f){return f.id!==7;});
+      // 積立の見直し（1回限り）：NISA 11月から停止／ふき2万円／親への返済5千円
+      if(!state.savingsPlanV3){
+        state.fixedItems=state.fixedItems.map(function(f){
+          if(f.id===14) return Object.assign({},f,{amount:0});
+          if(f.id===11) return Object.assign({},f,{amount:20000});
+          if(f.id===12) return Object.assign({},f,{amount:5000});
+          return f;
+        });
+        state.savingsPlanV3=true;
+      }
       var hasCx3=state.fixedItems.some(function(f){return f.id===13;});
       if(!hasCx3){
         state.fixedItems.push({id:13,name:'cx3ローン',amount:34400,type:'repay',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000});
@@ -974,8 +995,12 @@ function render(){
     var fukiLeft=FUKI_GOAL-fukiBalance;
     if(fukiLeft<=0){ fukiRemain.textContent='達成！'; }
     else {
-      var fukiMonths=Math.ceil(fukiLeft/25000);
-      fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月2.5万円ペース）';
+      if(fukiThisMonth>0){
+        var fukiMonths=Math.ceil(fukiLeft/fukiThisMonth);
+        fukiRemain.textContent='残り '+fmt(fukiLeft)+' / あと約'+fukiMonths+'ヶ月（月'+fmt(fukiThisMonth)+'ペース）';
+      } else {
+        fukiRemain.textContent='残り '+fmt(fukiLeft)+'（積立停止中）';
+      }
     }
   }
 
@@ -996,8 +1021,12 @@ function render(){
     var repayLeft=REPAY_GOAL-repayBalance;
     if(repayLeft<=0){ repayRemain.textContent='達成！'; }
     else {
-      var repayMonths=Math.ceil(repayLeft/15000);
-      repayRemain.textContent='残り '+fmt(repayLeft)+' / あと約'+repayMonths+'ヶ月（月1.5万円ペース）';
+      if(repayThisMonth>0){
+        var repayMonths=Math.ceil(repayLeft/repayThisMonth);
+        repayRemain.textContent='残り '+fmt(repayLeft)+' / あと約'+repayMonths+'ヶ月（月'+fmt(repayThisMonth)+'ペース）';
+      } else {
+        repayRemain.textContent='残り '+fmt(repayLeft)+'（積立停止中）';
+      }
     }
   }
   updateBillingDisplay();
@@ -1010,6 +1039,33 @@ function render(){
   var pf=document.getElementById('v-pfill');
   pf.style.width=pct+'%';
   pf.className='pfill '+(pct<70?'fill-ok':pct<100?'fill-warn':'fill-over');
+
+  // 使いすぎ防止：残り予算と1日あたりの目安
+  var remainEl=document.getElementById('v-remain');
+  var perDayEl=document.getElementById('v-perday');
+  var perDayLbl=document.getElementById('v-perday-label');
+  if(remainEl&&perDayEl){
+    var remain=VARIABLE_BUDGET-varT;
+    remainEl.textContent=remain>=0?fmt(remain):'超過 '+fmt(-remain);
+    remainEl.style.color=remain<0?'var(--danger)':pct>=70?'var(--warn)':'var(--accent)';
+    var _now=new Date();
+    var _isThisMonth=(_now.getFullYear()===y&&_now.getMonth()===m);
+    var _dim=new Date(y,m+1,0).getDate();
+    if(remain<0){
+      perDayLbl.textContent='今月はもう使わない';
+      perDayEl.textContent='0円';
+      perDayEl.style.color='var(--danger)';
+    } else if(_isThisMonth){
+      var _left=_dim-_now.getDate()+1; // 今日を含む残り日数
+      perDayLbl.textContent='1日あたり（残り'+_left+'日）';
+      perDayEl.textContent=fmt(Math.floor(remain/_left));
+      perDayEl.style.color='var(--text)';
+    } else {
+      perDayLbl.textContent='1日あたり';
+      perDayEl.textContent=fmt(Math.floor(remain/_dim));
+      perDayEl.style.color='var(--text-muted)';
+    }
+  }
 
   document.getElementById('f-total-lbl').textContent=fmt(getFixedOnlyTotal(y,m));
   var sTotalEl=document.getElementById('s-total-lbl');
@@ -1876,8 +1932,10 @@ function accrueSavingsIfNeeded(){
     lm++;
     if(lm>11){lm=0;ly++;}
     var mk=mkey(ly,lm);
-    S.fukiBalance=(S.fukiBalance||0)+25000;
-    S.repayBalance=(S.repayBalance||0)+15000;
+    var _fk=S.fixedItems.filter(function(f){return f.id===11;})[0];
+    var _rp=S.fixedItems.filter(function(f){return f.id===12;})[0];
+    S.fukiBalance=(S.fukiBalance||0)+(_fk?_fk.amount:20000);
+    S.repayBalance=(S.repayBalance||0)+(_rp?_rp.amount:5000);
     S.lastAccrualMk=mk;
     if(mk>=nowMk) break;
   }
