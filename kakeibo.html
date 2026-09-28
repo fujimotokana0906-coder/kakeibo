@@ -623,12 +623,11 @@ var FIXED_DEFAULT = [
   },
   {id:8, name:'エブリカ(食費)',   amount:10000, type:'budget-accordion', day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
-  {id:6, name:'積立NISA（楽天VTI）',amount:15000, type:'invest',  day:1, endMk:'2026-10'},
-  {id:14,name:'積立NISA（楽天VTI）',amount:0, type:'invest',  day:1, startMk:'2026-11'},
+  {id:6, name:'積立NISA（楽天VTI）',amount:0, type:'invest',  day:1},
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
   {id:11,name:'🐕 ふき貯金',       amount:20000, type:'invest',  day:1},
   {id:12,name:'💴 親への返済',     amount:5000, type:'repay',   day:1},
-  {id:13,name:'cx3ローン',        amount:34400, type:'repay',   day:1, startMk:'2026-09', endMk:'2028-07', bonusExtra:100000},
+  {id:13,name:'cx3ローン',        amount:34400, type:'fixed',   day:1, startMk:'2026-09', endMk:'2028-07', bonusExtra:100000},
 ];
 
 var CAT_LABELS = {snack:'軽食',daily:'日用品',clothes:'洋服',beauty:'美容',hobby:'趣味・娯楽',social:'交遊費',transport:'ドライブ費',travel:'旅行',utility:'光熱費',other:'その他','travel-transport':'旅行/交通費','travel-food':'旅行/食費','travel-other':'旅行/その他'};
@@ -665,8 +664,7 @@ function loadState(){
         return f;
       });
       // マツダがなければ復元
-      var hasMazda=state.fixedItems.some(function(f){return f.id===4;});
-      if(!hasMazda){
+      if(false && !state.seeded_4){
         state.fixedItems.splice(3,0,{id:4,name:'マツダ',amount:14000,type:'budget-accordion',day:26,linkedCat:'transport',includeInBalance:true,items:[{name:'マツダ本体',amount:10000},{name:'車の保険',amount:4000}]});
       }
       if(!state.bankBalances) state.bankBalances={};
@@ -682,25 +680,11 @@ function loadState(){
       if(!state.lastAccrualMk) state.lastAccrualMk=mkey(state.curY,state.curM);
       if(!state.balanceAdj) state.balanceAdj={};
       // 固定費に「ふき貯金」「親への返済」がなければ追加
-      var hasFukiItem=state.fixedItems.some(function(f){return f.id===11;});
-      if(!hasFukiItem){
+      if(false && !state.seeded_11){
         state.fixedItems.push({id:11,name:'🐕 ふき貯金',amount:20000,type:'invest',day:1});
       }
-      var hasRepayItem=state.fixedItems.some(function(f){return f.id===12;});
-      if(!hasRepayItem){
+      if(false && !state.seeded_12){
         state.fixedItems.push({id:12,name:'💴 親への返済',amount:5000,type:'repay',day:1});
-      }
-      // 積立NISA：11月から5,000円に変更（10月までは8,000円）
-      var hasNisaNew=state.fixedItems.some(function(f){return f.id===14;});
-      if(!hasNisaNew){
-        state.fixedItems=state.fixedItems.map(function(f){
-          if(f.id===6) return Object.assign({},f,{amount:15000,endMk:'2026-10'});
-          return f;
-        });
-        var nisaIdx=state.fixedItems.findIndex(function(f){return f.id===6;});
-        var nisaNew={id:14,name:'積立NISA（楽天VTI）',amount:0,type:'invest',day:1,startMk:'2026-11'};
-        if(nisaIdx>=0) state.fixedItems.splice(nisaIdx+1,0,nisaNew);
-        else state.fixedItems.push(nisaNew);
       }
       state.fixedItems=state.fixedItems.map(function(f){
         if(f.id===6 && f.endMk==='2026-10' && f.amount===8000) return Object.assign({},f,{amount:15000});
@@ -711,27 +695,55 @@ function loadState(){
       // 積立の見直し（1回限り）：NISA 11月から停止／ふき2万円／親への返済5千円
       if(!state.savingsPlanV3){
         state.fixedItems=state.fixedItems.map(function(f){
-          if(f.id===14) return Object.assign({},f,{amount:0});
           if(f.id===11) return Object.assign({},f,{amount:20000});
           if(f.id===12) return Object.assign({},f,{amount:5000});
           return f;
         });
         state.savingsPlanV3=true;
       }
-      var hasCx3=state.fixedItems.some(function(f){return f.id===13;});
-      if(!hasCx3){
-        state.fixedItems.push({id:13,name:'cx3ローン',amount:34400,type:'repay',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000});
+      // NISAを1本に一本化（1回限り）：〜2026年10月は15,000円、11月から停止
+      if(!state.nisaUnifiedV1){
+        var isNisa=function(f){return f.type==='invest' && /NISA/i.test(f.name||'');};
+        var nisaItems=state.fixedItems.filter(isNisa);
+        // 名前がNISAの項目を全て外し、1本だけ入れ直す（位置は最初のNISA項目の場所）
+        var firstIdx=state.fixedItems.findIndex(isNisa);
+        state.fixedItems=state.fixedItems.filter(function(f){return !isNisa(f);});
+        var nisaOne={id:6,name:'積立NISA（楽天VTI）',amount:15000,type:'invest',day:1,startMk:'2026-09',endMk:'2026-10'};
+        if(firstIdx>=0 && firstIdx<=state.fixedItems.length) state.fixedItems.splice(firstIdx,0,nisaOne);
+        else state.fixedItems.push(nisaOne);
+        state.nisaUnifiedV1=true;
+      }
+      if(false && !state.seeded_13){
+        state.fixedItems.push({id:13,name:'cx3ローン',amount:34400,type:'fixed',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000});
       }
       // 旅行予算がなければ追加
-      var hasTravelBudget=state.fixedItems.some(function(f){return f.id===9;});
-      if(!hasTravelBudget){
+      if(false && !state.seeded_9){
         state.fixedItems.push({id:9,name:'旅行予算',amount:0,type:'budget-accordion',day:1,linkedCat:'travel',includeInBalance:true,travelBudget:true,items:[]});
       }
       // エブリカ復元
-      var hasEbrika=state.fixedItems.some(function(f){return f.id===8;});
-      if(!hasEbrika){
+      if(false && !state.seeded_8){
         state.fixedItems.splice(4,0,{id:8,name:'エブリカ(食費)',amount:10000,type:'budget-accordion',day:26,linkedKeyword:'エブリカチャージ',linkedAdd:true,defaultCharge:10000});
       }
+      // 積立を一旦0円に／cx3ローンは固定費扱いに（1回限り。項目自体は残す）
+      if(!state.savingsZeroV1){
+        state.fixedItems=state.fixedItems.map(function(f){
+          if(f.type==='invest'&&/NISA/i.test(f.name||'')) return Object.assign({},f,{amount:0});
+          if(f.id===13) return Object.assign({},f,{type:'fixed'});
+          return f;
+        });
+        state.savingsZeroV1=true;
+      }
+      // ふき貯金は2万円・親への返済は5千円に戻す（1回限り）
+      if(!state.savingsRestoreV1){
+        state.fixedItems=state.fixedItems.map(function(f){
+          if(f.id===11) return Object.assign({},f,{amount:20000});
+          if(f.id===12) return Object.assign({},f,{amount:5000});
+          return f;
+        });
+        state.savingsRestoreV1=true;
+      }
+      // 上記の初期項目は一度判定したら二度と自動追加しない（ユーザーが削除しても復活させない）
+      [4,8,9,11,12,13].forEach(function(id){ state['seeded_'+id]=true; });
       // 親への返済→カーローンに名称変更
       state.fixedItems=state.fixedItems.map(function(f){
         if(f.id===7&&f.name==='親への返済') return Object.assign({},f,{name:'カーローン'});
@@ -861,10 +873,13 @@ function getVariableTotal(y,m){
   // エブリカチャージのみ変動費から除外（ドライブ費は収支に含める＝変動費に残す）
   var entries=getEntries(y,m);
   var linkedKws=S.fixedItems.filter(function(f){return f.type==='budget'&&f.linkedKeyword&&f.linkedAdd;}).map(function(f){return f.linkedKeyword;});
+  // 固定費側（車の項目）で実績を計上しているカテゴリは、変動費の合計から除く（二重計上防止）
+  var fixedSideCats=S.fixedItems.filter(function(f){return (f.type==='budget'||f.type==='budget-accordion')&&f.includeInBalance&&f.linkedCat&&!f.travelBudget;}).map(function(f){return f.linkedCat;});
   return entries.reduce(function(s,e){
     var skip=false;
     linkedKws.forEach(function(kw){if(e.name.indexOf(kw)>=0) skip=true;});
     if(skip) return s;
+    if(fixedSideCats.indexOf(e.cat)>=0) return s;
     return s+e.amount;
   },0);
 }
