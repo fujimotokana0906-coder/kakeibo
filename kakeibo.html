@@ -621,7 +621,6 @@ var FIXED_DEFAULT = [
       {name:'車の保険',   amount:4000},
     ]
   },
-  {id:8, name:'エブリカ(食費)',   amount:10000, type:'budget-accordion', day:26, linkedKeyword:'エブリカチャージ', linkedAdd:true, defaultCharge:10000},
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
   {id:6, name:'積立NISA（楽天VTI）',amount:0, type:'invest',  day:1},
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
@@ -741,6 +740,14 @@ function loadState(){
           return f;
         });
         state.savingsRestoreV1=true;
+      }
+      // エブリカチャージを普通の変動費に（1回限り）：固定費のエブリカ項目を外し、隠れていた記録を表示に戻す
+      if(!state.ebrikaPlainV1){
+        state.fixedItems=state.fixedItems.filter(function(f){return !f.linkedKeyword;});
+        Object.keys(state.entries||{}).forEach(function(mk){
+          (state.entries[mk]||[]).forEach(function(e){ if(e.excludeVar) e.excludeVar=false; });
+        });
+        state.ebrikaPlainV1=true;
       }
       // 上記の初期項目は一度判定したら二度と自動追加しない（ユーザーが削除しても復活させない）
       [4,8,9,11,12,13].forEach(function(id){ state['seeded_'+id]=true; });
@@ -872,13 +879,9 @@ function getFixedOnlyTotal(y,m){
 function getVariableTotal(y,m){
   // エブリカチャージのみ変動費から除外（ドライブ費は収支に含める＝変動費に残す）
   var entries=getEntries(y,m);
-  var linkedKws=S.fixedItems.filter(function(f){return f.type==='budget'&&f.linkedKeyword&&f.linkedAdd;}).map(function(f){return f.linkedKeyword;});
   // 固定費側（車の項目）で実績を計上しているカテゴリは、変動費の合計から除く（二重計上防止）
   var fixedSideCats=S.fixedItems.filter(function(f){return (f.type==='budget'||f.type==='budget-accordion')&&f.includeInBalance&&f.linkedCat&&!f.travelBudget;}).map(function(f){return f.linkedCat;});
   return entries.reduce(function(s,e){
-    var skip=false;
-    linkedKws.forEach(function(kw){if(e.name.indexOf(kw)>=0) skip=true;});
-    if(skip) return s;
     if(fixedSideCats.indexOf(e.cat)>=0) return s;
     return s+e.amount;
   },0);
@@ -1655,30 +1658,12 @@ function addEntry(){
   }
   if(!name) return;
 
-  // エブリカチャージ判定
-  var ebrikaFixed=null;
-  S.fixedItems.forEach(function(f){
-    if(f.linkedKeyword&&name.indexOf(f.linkedKeyword)>=0) ebrikaFixed=f;
-  });
-
-  var amount;
-  var autoCharge=false;
-  if(ebrikaFixed){
-    // エブリカ：金額空白→デフォルト10000円、入力あれば追加チャージ
-    var extra=parseInt(amtRaw)||0;
-    amount = (ebrikaFixed.defaultCharge||10000) + extra;
-    autoCharge=true;
-  } else {
-    amount=parseInt(amtRaw);
-    if(!amount||amount<=0) return;
-  }
+  var amount=parseInt(amtRaw);
+  if(!amount||amount<=0) return;
 
   var entries=getEntries(S.curY,S.curM);
   var selDay=parseInt(document.getElementById('v-day').value)||new Date().getDate();
-  entries.push({name:name,amount:amount,cat:cat,day:selDay,id:Date.now(),
-    _autoCharge:autoCharge,
-    excludeVar:(ebrikaFixed?true:false)
-  });
+  entries.push({name:name,amount:amount,cat:cat,day:selDay,id:Date.now()});
   setEntries(entries);
   document.getElementById('v-name').value='';
   document.getElementById('v-amount').value='';
