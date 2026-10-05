@@ -1673,10 +1673,38 @@ function addEntry(){
 var _undoBuffer=null;
 function delEntry(idx){
   var entries=getEntries(S.curY,S.curM);
-  _undoBuffer={type:'entry',mk:mkey(S.curY,S.curM),entry:Object.assign({},entries[idx]),idx:idx};
+  var target=entries[idx];
+  if(!target) return;
+  // 削除前に確認
+  if(!confirm('「'+target.name+'」'+fmt(target.amount)+' を本当に削除しますか？')) return;
+  _undoBuffer={type:'entry',mk:mkey(S.curY,S.curM),entry:Object.assign({},target),idx:idx};
+  entries.splice(idx,1);
+  setEntries(entries);
+  save();render();
   showUndoToast();
-  var entries=getEntries(S.curY,S.curM);
-  entries.splice(idx,1);setEntries(entries);save();render();
+}
+
+// 削除のあと5秒間、「元に戻す」を表示
+function showUndoToast(){
+  var t=document.getElementById('undo-toast');
+  if(!t) return;
+  t.style.display='flex';
+  clearTimeout(window._undoTimer);
+  window._undoTimer=setTimeout(hideUndoToast,5000);
+}
+function hideUndoToast(){
+  var t=document.getElementById('undo-toast');
+  if(t) t.style.display='none';
+}
+function undoDelete(){
+  if(!_undoBuffer) return;
+  var b=_undoBuffer;
+  var list=S.entries[b.mk]||[];
+  list.splice(Math.min(b.idx,list.length),0,b.entry);
+  S.entries[b.mk]=list;
+  _undoBuffer=null;
+  hideUndoToast();
+  save();render();
 }
 
 function addFixed(){
