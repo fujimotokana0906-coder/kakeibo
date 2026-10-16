@@ -588,6 +588,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <div class="card-title" style="color:var(--danger)">データ管理</div>
       <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:#E0C0C0" onclick="resetData()">すべてのデータを初期化する</button>
     </div>
+    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-10-16 c</div>
   </div>
 </div>
 
@@ -1812,11 +1813,12 @@ function saveBilling(){
   var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
   var yachin=parseInt(document.getElementById('billing-yachin').value)||42330;
   var cx3raw=document.getElementById('billing-cx3').value;
-  var cx3=!isCx3Active(S.curY,S.curM)?0:((cx3raw==='')?getCx3Default(S.curY,S.curM):(parseInt(cx3raw)||0));
+  var cx3=!isCx3RowShown(S.curY,S.curM)?0:((cx3raw==='')?getCx3Default(S.curY,S.curM):(parseInt(cx3raw)||0));
   if(paypay===0&&rakuten===0&&yachin===0){alert('請求額を入力してください');return;}
   if(!S.billings) S.billings={};
   S.billings[curKey()]={paypay:paypay,rakuten:rakuten,yachin:yachin,cx3:cx3};
   save();
+  applyCx3RowVisibility();
   updateBillingDisplay();
   alert(MN[S.curM]+'の請求額を保存しました');
 }
@@ -1828,6 +1830,22 @@ function getCx3Item(){
 function isCx3Active(y,m){
   var f=getCx3Item();
   return !!(f&&isFixedActive(f,y,m));
+}
+// cx3ローンの欄の表示／非表示（返済期間の外で、金額も入っていないときは隠す）
+function applyCx3RowVisibility(){
+  var cxShow=isCx3RowShown(S.curY,S.curM);
+  var cxRow=document.getElementById('billing-cx3-row');
+  var cxHint=document.getElementById('billing-cx3-hint');
+  var rkRow=document.getElementById('billing-rakuten-row');
+  if(cxRow) cxRow.style.display=cxShow?'flex':'none';
+  if(cxHint) cxHint.style.display=cxShow?'block':'none';
+  if(rkRow) rkRow.style.marginBottom=cxShow?'6px':'10px';
+}
+// 請求額の欄を出すか：期間内、または、その月にcx3ローンの金額が保存されている（合計に入っている）とき
+function isCx3RowShown(y,m){
+  if(isCx3Active(y,m)) return true;
+  var bl=S.billings&&S.billings[mkey(y,m)];
+  return !!(bl&&bl.cx3);
 }
 function getCx3Default(y,m){
   var f=getCx3Item();
@@ -1909,14 +1927,7 @@ function updateSalaryBadge(){
   if(cxEl){
     cxEl.value=(bl&&bl.cx3!==undefined)?bl.cx3:getCx3Default(S.curY,S.curM);
     cxEl.placeholder=String(getCx3Default(S.curY,S.curM));
-    // 返済期間の外（完済後など）は欄ごと表示しない
-    var cxShow=isCx3Active(S.curY,S.curM);
-    var cxRow=document.getElementById('billing-cx3-row');
-    var cxHint=document.getElementById('billing-cx3-hint');
-    var rkRow=document.getElementById('billing-rakuten-row');
-    if(cxRow) cxRow.style.display=cxShow?'flex':'none';
-    if(cxHint) cxHint.style.display=cxShow?'block':'none';
-    if(rkRow) rkRow.style.marginBottom=cxShow?'6px':'10px';
+    applyCx3RowVisibility();
   }
   if(ppEl) ppEl.value=bl?bl.paypay||'':'';
   if(rkEl) rkEl.value=bl?bl.rakuten||'':'';
