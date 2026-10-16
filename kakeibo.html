@@ -719,8 +719,16 @@ function loadState(){
         else state.fixedItems.push(nisaOne);
         state.nisaUnifiedV1=true;
       }
-      if(false && !state.seeded_13){
-        state.fixedItems.push({id:13,name:'cx3ローン',amount:34400,type:'fixed',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000});
+      // cx3ローンが固定費に無い場合は、1回だけ復元する（その後に自分で削除した場合は戻さない）
+      if(!state.cx3EnsuredV1){
+        var hasCx3Now=state.fixedItems.some(function(f){return f.id===13||/cx3/i.test(f.name||'');});
+        if(!hasCx3Now){
+          var cx3Item={id:13,name:'cx3ローン',amount:34400,type:'fixed',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000};
+          var firstSavingIdx=state.fixedItems.findIndex(function(f){return f.type==='invest'||f.type==='repay';});
+          if(firstSavingIdx>=0) state.fixedItems.splice(firstSavingIdx,0,cx3Item);
+          else state.fixedItems.push(cx3Item);
+        }
+        state.cx3EnsuredV1=true;
       }
       // 旅行予算がなければ追加
       if(false && !state.seeded_9){
