@@ -522,11 +522,18 @@ select{-webkit-appearance:auto;appearance:auto}
         <span style="font-size:12px;color:var(--text-muted)">円</span>
       </div>
       <!-- 楽天カード請求額 -->
-      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px;margin-bottom:6px">
         <span style="font-size:13px;flex:1">楽天カード請求額</span>
         <input type="number" id="billing-rakuten" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
         <span style="font-size:12px;color:var(--text-muted)">円</span>
       </div>
+      <!-- cx3ローン -->
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--r);padding:9px 12px;margin-bottom:10px">
+        <span style="font-size:13px;flex:1">cx3ローン</span>
+        <input type="number" id="billing-cx3" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
+        <span style="font-size:12px;color:var(--text-muted)">円</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-faint);margin:-4px 0 10px">cx3ローンは空欄なら、固定費の予定額（ボーナス月は+10万円）で計算します</div>
       <button class="btn btn-primary" style="width:100%" onclick="saveBilling()">請求額を保存</button>
       <!-- 差異表示 -->
       <div id="billing-diff-wrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--r)">
@@ -1796,12 +1803,21 @@ function saveBilling(){
   var paypay=parseInt(document.getElementById('billing-paypay').value)||0;
   var rakuten=parseInt(document.getElementById('billing-rakuten').value)||0;
   var yachin=parseInt(document.getElementById('billing-yachin').value)||42330;
+  var cx3raw=document.getElementById('billing-cx3').value;
+  var cx3=(cx3raw==='')?getCx3Default(S.curY,S.curM):(parseInt(cx3raw)||0);
   if(paypay===0&&rakuten===0&&yachin===0){alert('請求額を入力してください');return;}
   if(!S.billings) S.billings={};
-  S.billings[curKey()]={paypay:paypay,rakuten:rakuten,yachin:yachin};
+  S.billings[curKey()]={paypay:paypay,rakuten:rakuten,yachin:yachin,cx3:cx3};
   save();
   updateBillingDisplay();
   alert(MN[S.curM]+'の請求額を保存しました');
+}
+
+// cx3ローンのその月の予定額（固定費の項目から。期間外・項目なしは0）
+function getCx3Default(y,m){
+  var f=S.fixedItems.filter(function(x){return x.id===13||/cx3/i.test(x.name||'');})[0];
+  if(!f||!isFixedActive(f,y,m)) return 0;
+  return getItemAmount(f,y,m);
 }
 
 function updateBillingDisplay(){
@@ -1811,7 +1827,8 @@ function updateBillingDisplay(){
   if(!wrap) return;
   if(bk){
     var YACHIN=bk.yachin||42330;
-    var billingTotal=(bk.paypay||0)+(bk.rakuten||0)+YACHIN;
+    var CX3=(bk.cx3!==undefined)?bk.cx3:getCx3Default(y,m);
+    var billingTotal=(bk.paypay||0)+(bk.rakuten||0)+YACHIN+CX3;
     var kakeiboTotal=getFixedTotal(y,m)+getVariableTotal(y,m);
     var diff=billingTotal-kakeiboTotal;
     wrap.style.display='block';
@@ -1873,6 +1890,11 @@ function updateSalaryBadge(){
   var ppEl=document.getElementById('billing-paypay');
   var rkEl=document.getElementById('billing-rakuten');
   var ycEl=document.getElementById('billing-yachin');
+  var cxEl=document.getElementById('billing-cx3');
+  if(cxEl){
+    cxEl.value=(bl&&bl.cx3!==undefined)?bl.cx3:'';
+    cxEl.placeholder=String(getCx3Default(S.curY,S.curM));
+  }
   if(ppEl) ppEl.value=bl?bl.paypay||'':'';
   if(rkEl) rkEl.value=bl?bl.rakuten||'':'';
   if(ycEl) ycEl.value=bl?bl.yachin||'':'';
