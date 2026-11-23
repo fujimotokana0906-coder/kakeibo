@@ -533,7 +533,7 @@ select{-webkit-appearance:auto;appearance:auto}
         <input type="number" id="billing-cx3" inputmode="numeric" placeholder="0" style="font-family:var(--mono);width:110px;font-size:14px;padding:4px 6px;text-align:right">
         <span style="font-size:12px;color:var(--text-muted)">円</span>
       </div>
-      <div id="billing-cx3-hint" style="font-size:11px;color:var(--text-faint);margin:-4px 0 10px">cx3ローンは固定費の予定額（ボーナス月は+10万円）が入っています。実際の引き落とし額が違うときは書き換えて保存してください</div>
+      <div id="billing-cx3-hint" style="font-size:11px;color:var(--text-faint);margin:-4px 0 10px">cx3ローンは固定費と同じ額（ボーナス月は+10万円）が自動で登録されています。実際の引き落とし額が違うときは書き換えて保存してください</div>
       <button class="btn btn-primary" style="width:100%" onclick="saveBilling()">請求額を保存</button>
       <!-- 差異表示 -->
       <div id="billing-diff-wrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--r)">
@@ -546,6 +546,7 @@ select{-webkit-appearance:auto;appearance:auto}
           <span>家計簿の合計</span>
           <span style="font-family:var(--mono)" id="billing-kakeibo-display">—</span>
         </div>
+        <div id="billing-kakeibo-breakdown" style="font-size:11px;color:var(--text-muted);margin:0 0 6px 10px;line-height:1.7"></div>
         <div style="height:1px;background:var(--border);margin:6px 0"></div>
         <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500">
           <span>差異</span>
@@ -588,7 +589,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <div class="card-title" style="color:var(--danger)">データ管理</div>
       <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:#E0C0C0" onclick="resetData()">すべてのデータを初期化する</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-10-16 c</div>
+    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-23 a</div>
   </div>
 </div>
 
@@ -632,8 +633,10 @@ var FIXED_DEFAULT = [
   {id:5, name:'水道光熱費（概算）',amount:15000, type:'utility', day:26, isUtilityPlaceholder:true},
   {id:6, name:'積立NISA（楽天VTI）',amount:0, type:'invest',  day:1},
   {id:9, name:'旅行予算',          amount:0,     type:'budget-accordion', day:1, linkedCat:'travel', includeInBalance:true, travelBudget:true, items:[]},
-  {id:11,name:'🐕 ふき貯金',       amount:20000, type:'invest',  day:1},
-  {id:12,name:'💴 親への返済',     amount:5000, type:'repay',   day:1},
+  {id:15,name:'🐕 ふき貯金',       amount:20000, type:'invest',  day:1, group:'fuki',  endMk:'2026-10'},
+  {id:11,name:'🐕 ふき貯金',       amount:25000, type:'invest',  day:1, group:'fuki',  startMk:'2026-11'},
+  {id:16,name:'💴 親への返済',     amount:5000, type:'repay',   day:1, group:'repay', endMk:'2026-10'},
+  {id:12,name:'💴 親への返済',     amount:10000, type:'repay',   day:1, group:'repay', startMk:'2026-11'},
   {id:13,name:'cx3ローン',        amount:34400, type:'fixed',   day:1, startMk:'2026-09', endMk:'2028-07', bonusExtra:100000},
 ];
 
@@ -757,6 +760,19 @@ function loadState(){
         });
         state.savingsRestoreV1=true;
       }
+      // ふき貯金は月2.5万円・親への返済は月1万円に（2026年11月から。1回限り）
+      if(!state.savingsPlanV4){
+        [[11,25000,'fuki'],[12,10000,'repay']].forEach(function(spec){
+          var idx=state.fixedItems.findIndex(function(f){return f.id===spec[0];});
+          if(idx<0) return;
+          var cur=state.fixedItems[idx];
+          var newId=state.nextId||20; state.nextId=newId+1;
+          var legacy=Object.assign({},cur,{id:newId,group:spec[2],endMk:'2026-10'});
+          var next=Object.assign({},cur,{amount:spec[1],group:spec[2],startMk:'2026-11'});
+          state.fixedItems.splice(idx,1,legacy,next);
+        });
+        state.savingsPlanV4=true;
+      }
       // エブリカチャージを普通の変動費に（1回限り）：固定費のエブリカ項目を外し、隠れていた記録を表示に戻す
       if(!state.ebrikaPlainV1){
         state.fixedItems=state.fixedItems.filter(function(f){return !f.linkedKeyword;});
@@ -791,6 +807,8 @@ function loadState(){
     balanceAdj: {},        // {mkey: 差異金額（記録用）}
     bonuses: {},           // {mkey: ボーナス額}
     lastAccrualMk: mkey(START_Y,START_M), // 最後に積立加算した月
+    savingsPlanV3:true, nisaUnifiedV1:true, savingsZeroV1:true, savingsRestoreV1:true,
+    ebrikaPlainV1:true, cx3EnsuredV1:true, savingsPlanV4:true,
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
@@ -879,6 +897,12 @@ function getFixedTotal(y,m){
 }
 
 // 積立（invest/repay）だけの合計 ※getFixedTotalには既に含まれている表示用の内訳
+// 積立のグループ（'fuki'・'repay'）について、その月に有効な金額を返す
+function getGroupAmount(group,y,m){
+  var f=S.fixedItems.filter(function(x){return x.group===group&&isFixedActive(x,y,m);})[0];
+  return f?getItemAmount(f,y,m):0;
+}
+
 function getSavingsTotal(y,m){
   return S.fixedItems.reduce(function(s,f){
     if(!isFixedActive(f,y,m)) return s;
@@ -1015,8 +1039,7 @@ function render(){
   // ふき貯金バー
   var FUKI_GOAL=500000;
   var fukiBalance=S.fukiBalance||0;
-  var fukiItem=S.fixedItems.filter(function(f){return f.id===11;})[0];
-  var fukiThisMonth=fukiItem?fukiItem.amount:30000;
+  var fukiThisMonth=getGroupAmount('fuki',y,m);
   var fukiPct=Math.min(Math.round(fukiBalance/FUKI_GOAL*100),100);
   var fukiBar=document.getElementById('fuki-bar');
   var fukiAmt=document.getElementById('fuki-amount');
@@ -1041,8 +1064,7 @@ function render(){
   // 親への返済バー
   var REPAY_GOAL=661000;
   var repayBalance=S.repayBalance||0;
-  var repayItem=S.fixedItems.filter(function(f){return f.id===12;})[0];
-  var repayThisMonth=repayItem?repayItem.amount:20000;
+  var repayThisMonth=getGroupAmount('repay',y,m);
   var repayPct=Math.min(Math.round(repayBalance/REPAY_GOAL*100),100);
   var repayBar=document.getElementById('repay-bar');
   var repayAmt=document.getElementById('repay-amount');
@@ -1847,6 +1869,18 @@ function isCx3RowShown(y,m){
   var bl=S.billings&&S.billings[mkey(y,m)];
   return !!(bl&&bl.cx3);
 }
+// cx3ローンを、その月の請求額データとして自動登録（固定費と同額。すでに保存済みの月は触らない）
+function ensureCx3Registered(y,m){
+  var def=getCx3Default(y,m);
+  if(!def) return;
+  if(!S.billings) S.billings={};
+  var k=mkey(y,m), bl=S.billings[k];
+  if(bl&&bl.cx3!==undefined) return;
+  if(!bl) bl={paypay:0,rakuten:0};
+  bl.cx3=def;
+  S.billings[k]=bl;
+  save();
+}
 function getCx3Default(y,m){
   var f=getCx3Item();
   if(!f||!isFixedActive(f,y,m)) return 0;
@@ -1858,12 +1892,19 @@ function updateBillingDisplay(){
   var bk=S.billings&&S.billings[curKey()];
   var wrap=document.getElementById('billing-diff-wrap');
   if(!wrap) return;
-  if(bk){
+  if(bk&&(bk.paypay||bk.rakuten||bk.yachin)){
     var YACHIN=bk.yachin||42330;
     var CX3=(bk.cx3!==undefined)?bk.cx3:getCx3Default(y,m);
     var billingTotal=(bk.paypay||0)+(bk.rakuten||0)+YACHIN+CX3;
     var kakeiboTotal=getFixedTotal(y,m)+getVariableTotal(y,m);
     var diff=billingTotal-kakeiboTotal;
+    // 家計簿の合計の内訳（固定費・積立・変動費）
+    var bdFixed=getFixedOnlyTotal(y,m), bdSave=getSavingsTotal(y,m), bdVar=getVariableTotal(y,m);
+    var bdEl=document.getElementById('billing-kakeibo-breakdown');
+    if(bdEl){
+      var row=function(l,v){return '<div style="display:flex;justify-content:space-between"><span>'+l+'</span><span style="font-family:var(--mono)">'+fmt(v)+'</span></div>';};
+      bdEl.innerHTML=row('固定費（積立を除く）',bdFixed)+row('積立（NISA・ふき貯金・親への返済）',bdSave)+row('変動費',bdVar);
+    }
     wrap.style.display='block';
     document.getElementById('billing-total-display').textContent=fmt(billingTotal);
     document.getElementById('billing-kakeibo-display').textContent=fmt(kakeiboTotal);
@@ -1919,6 +1960,7 @@ function updateSalaryBadge(){
   if(bonusInput) bonusInput.value=bonusAmt||'';
 
   // 請求額入力欄：その月の保存値を表示、なければ空欄
+  ensureCx3Registered(S.curY,S.curM);
   var bl=S.billings&&S.billings[curKey()];
   var ppEl=document.getElementById('billing-paypay');
   var rkEl=document.getElementById('billing-rakuten');
@@ -2016,10 +2058,8 @@ function accrueSavingsIfNeeded(){
     lm++;
     if(lm>11){lm=0;ly++;}
     var mk=mkey(ly,lm);
-    var _fk=S.fixedItems.filter(function(f){return f.id===11;})[0];
-    var _rp=S.fixedItems.filter(function(f){return f.id===12;})[0];
-    S.fukiBalance=(S.fukiBalance||0)+(_fk?_fk.amount:20000);
-    S.repayBalance=(S.repayBalance||0)+(_rp?_rp.amount:5000);
+    S.fukiBalance=(S.fukiBalance||0)+getGroupAmount('fuki',ly,lm);
+    S.repayBalance=(S.repayBalance||0)+getGroupAmount('repay',ly,lm);
     S.lastAccrualMk=mk;
     if(mk>=nowMk) break;
   }
