@@ -589,7 +589,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <div class="card-title" style="color:var(--danger)">データ管理</div>
       <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:#E0C0C0" onclick="resetData()">すべてのデータを初期化する</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-24 b</div>
+    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-24 c</div>
   </div>
 </div>
 
@@ -747,6 +747,18 @@ function loadState(){
         }
         state.cx3EnsuredV2=true;
       }
+      // cx3ローン 重複の整理（1回だけ）：全角表記なども同じ項目として扱い、1件に統一
+      if(!state.cx3EnsuredV3){
+        var isC3=function(f){return f.id===13||/cx3/i.test(String(f.name||'').normalize('NFKC'));};
+        var c3s=state.fixedItems.filter(isC3);
+        if(c3s.length>1){
+          var keep=c3s.filter(function(f){return f.id!==13;})[0]||c3s[0];
+          state.fixedItems=state.fixedItems.filter(function(f){return !isC3(f)||f===keep;});
+        }
+        var k3=state.fixedItems.filter(isC3)[0];
+        if(k3){k3.name='cx3ローン';k3.type='fixed';k3.amount=34400;k3.startMk='2026-09';k3.endMk='2028-07';k3.bonusExtra=100000;}
+        state.cx3EnsuredV3=true;
+      }
       // 旅行予算がなければ追加
       if(false && !state.seeded_9){
         state.fixedItems.push({id:9,name:'旅行予算',amount:0,type:'budget-accordion',day:1,linkedCat:'travel',includeInBalance:true,travelBudget:true,items:[]});
@@ -821,7 +833,7 @@ function loadState(){
     bonuses: {},           // {mkey: ボーナス額}
     lastAccrualMk: mkey(START_Y,START_M), // 最後に積立加算した月
     savingsPlanV3:true, nisaUnifiedV1:true, savingsZeroV1:true, savingsRestoreV1:true,
-    ebrikaPlainV1:true, cx3EnsuredV1:true, cx3EnsuredV2:true, savingsPlanV4:true,
+    ebrikaPlainV1:true, cx3EnsuredV1:true, cx3EnsuredV2:true, cx3EnsuredV3:true, savingsPlanV4:true,
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
@@ -1860,7 +1872,7 @@ function saveBilling(){
 
 // cx3ローンのその月の予定額（固定費の項目から。期間外・項目なしは0）
 function getCx3Item(){
-  return S.fixedItems.filter(function(x){return x.id===13||/cx3/i.test(x.name||'');})[0];
+  return S.fixedItems.filter(function(x){return x.id===13||/cx3/i.test(String(x.name||'').normalize('NFKC'));})[0];
 }
 function isCx3Active(y,m){
   var f=getCx3Item();
