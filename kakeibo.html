@@ -589,7 +589,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <div class="card-title" style="color:var(--danger)">データ管理</div>
       <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:#E0C0C0" onclick="resetData()">すべてのデータを初期化する</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-23 a</div>
+    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-24 a</div>
   </div>
 </div>
 
@@ -1875,7 +1875,7 @@ function ensureCx3Registered(y,m){
   if(!def) return;
   if(!S.billings) S.billings={};
   var k=mkey(y,m), bl=S.billings[k];
-  if(bl&&bl.cx3!==undefined) return;
+  if(bl&&bl.cx3) return; // 0や未設定（以前の保存で0になった月）は登録し直す
   if(!bl) bl={paypay:0,rakuten:0};
   bl.cx3=def;
   S.billings[k]=bl;
