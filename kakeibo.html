@@ -589,7 +589,7 @@ select{-webkit-appearance:auto;appearance:auto}
       <div class="card-title" style="color:var(--danger)">データ管理</div>
       <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:#E0C0C0" onclick="resetData()">すべてのデータを初期化する</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-24 a</div>
+    <div style="text-align:center;font-size:11px;color:var(--text-faint);margin:18px 0 6px;font-family:var(--mono)">バージョン 2026-11-24 b</div>
   </div>
 </div>
 
@@ -734,6 +734,19 @@ function loadState(){
         }
         state.cx3EnsuredV1=true;
       }
+      // cx3ローン 再確認（1回だけ）：無ければ追加、あれば期間・ボーナス加算を正しい値に直す
+      if(!state.cx3EnsuredV2){
+        var c3=state.fixedItems.filter(function(f){return f.id===13||/cx3/i.test(f.name||'');})[0];
+        if(!c3){
+          c3={id:13,name:'cx3ローン',amount:34400,type:'fixed',day:1,startMk:'2026-09',endMk:'2028-07',bonusExtra:100000};
+          var fsi=state.fixedItems.findIndex(function(f){return f.type==='invest'||f.type==='repay';});
+          if(fsi>=0) state.fixedItems.splice(fsi,0,c3); else state.fixedItems.push(c3);
+        } else {
+          c3.type='fixed'; c3.startMk='2026-09'; c3.endMk='2028-07'; c3.bonusExtra=100000;
+          if(!c3.amount) c3.amount=34400;
+        }
+        state.cx3EnsuredV2=true;
+      }
       // 旅行予算がなければ追加
       if(false && !state.seeded_9){
         state.fixedItems.push({id:9,name:'旅行予算',amount:0,type:'budget-accordion',day:1,linkedCat:'travel',includeInBalance:true,travelBudget:true,items:[]});
@@ -808,7 +821,7 @@ function loadState(){
     bonuses: {},           // {mkey: ボーナス額}
     lastAccrualMk: mkey(START_Y,START_M), // 最後に積立加算した月
     savingsPlanV3:true, nisaUnifiedV1:true, savingsZeroV1:true, savingsRestoreV1:true,
-    ebrikaPlainV1:true, cx3EnsuredV1:true, savingsPlanV4:true,
+    ebrikaPlainV1:true, cx3EnsuredV1:true, cx3EnsuredV2:true, savingsPlanV4:true,
   };
 }
 function save(){try{localStorage.setItem('kakeibo_v6',JSON.stringify(S)); localStorage.removeItem('kakeibo_v5');}catch(e){}}
